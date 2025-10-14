@@ -1,0 +1,33 @@
+﻿@{
+    ViewData["Title"] = "Rentals";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Rentals</h3>
+    <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg me-1"></i>New Rental</a>
+</div>
+<div class="table-responsive card shadow-sm">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Scope</th>
+                <th>Customer / Team</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>RNT-000231</td>
+                <td>External</td>
+                <td>Acme Studios</td>
+                <td>2025-11-10</td>
+                <td>2025-11-15</td>
+                <td><span class="badge text-bg-warning">Reserved</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="000231">Open</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

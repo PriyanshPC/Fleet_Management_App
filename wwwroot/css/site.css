@@ -1,22 +1,29 @@
-html {
-  font-size: 14px;
+:root {
+    /* replace with Figma tokens later */
+    --brand: #0d6efd;
+    --brand-600: #0b5ed7;
+    --surface: #ffffff;
+    --surface-alt: #f8f9fa;
+    --text: #212529;
+    --muted: #6c757d;
+    --radius: 12px;
+    --gap: 1rem;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+.bg-body {
+    background: var(--surface-alt);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.card {
+    border-radius: var(--radius);
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+.nav-link.active, .btn-primary {
+    background-color: var(--brand);
+    border-color: var(--brand);
 }
 
-body {
-  margin-bottom: 60px;
-}
+    .btn-primary:hover {
+        background-color: var(--brand-600);
+        border-color: var(--brand-600);
+    }
