@@ -1,12 +1,204 @@
 ﻿@{
-    ViewBag.Title = "Dashboard";
+    ViewData["Title"] = "Dashboard";
 }
-<div class="app-card p-3 d-flex align-items-center justify-content-between">
+
+<div class="page-head">
     <div>
-        <h2 class="h5 mb-1">Dashboard</h2>
-        <p class="text-muted mb-0">We’ll add graphs and active rentals next.</p>
+        <h2 class="m-0">Dashboard</h2>
+        <div class="kicker">Overview of fleet, rentals, and maintenance.</div>
     </div>
-    <a href="@Url.Action("New", "Rentals")" class="btn btn-outline-light">
-        <i class="bi bi-plus-lg me-1"></i> New Rental
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-green d-inline-flex align-items-center gap-2"
+           asp-controller="Rentals" asp-action="New">
+            <i class="bi bi-plus-lg"></i> New Rental
+        </a>
+    </div>
 </div>
+
+<!-- KPI SECTION -->
+<div class="stat-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-eyebrow">Total Equipment</div>
+        <div class="mt-1 d-flex align-items-center">
+            <div class="stat-value">128</div>
+            <span class="stat-delta delta-up">+5 this week</span>
+        </div>
+        <div class="text-muted mt-2" style="font-size:13px;">Across 9 categories</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-eyebrow">Active Rentals</div>
+        <div class="mt-1 d-flex align-items-center">
+            <div class="stat-value">23</div>
+            <span class="stat-delta delta-up">+3 today</span>
+        </div>
+        <div class="text-muted mt-2" style="font-size:13px;">5 due this week</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-eyebrow">Pending Maintenance</div>
+        <div class="mt-1 d-flex align-items-center">
+            <div class="stat-value">7</div>
+            <span class="stat-delta delta-down">-2</span>
+        </div>
+        <div class="text-muted mt-2" style="font-size:13px;">2 urgent items</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-eyebrow">Fleet Available</div>
+        <div class="mt-1 d-flex align-items-center">
+            <div class="stat-value">84</div>
+            <span class="pill pill-blue ms-2">65%</span>
+        </div>
+        <div class="text-muted mt-2" style="font-size:13px;">Including PPE, Vehicles, Drones</div>
+    </div>
+</div>
+
+<!-- CHARTS + TABLE -->
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Availability by Category</div>
+                <span class="text-muted" style="font-size:12px;">Live next — static sample</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="chartAvailability"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Maintenance Status</div>
+                <span class="text-muted" style="font-size:12px;">Static sample</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="chartMaintenance"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE RENTALS TABLE -->
+    <div class="col-12">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Active Rentals</div>
+                <a class="link-muted" asp-controller="Rentals" asp-action="List" style="font-size:13px;">View all</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-darkish">
+                    <thead>
+                        <tr>
+                            <th>Rental ID</th>
+                            <th>Client</th>
+                            <th>Items</th>
+                            <th>Out</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#R-1029</td>
+                            <td>Starlight Media</td>
+                            <td>FX6 Camera, DJI Mavic 3</td>
+                            <td>Oct 12</td>
+                            <td>Oct 18</td>
+                            <td><span class="pill pill-blue">On Rent</span></td>
+                        </tr>
+                        <tr>
+                            <td>#R-1030</td>
+                            <td>Nova Events</td>
+                            <td>4× Lavalier Mics</td>
+                            <td>Oct 13</td>
+                            <td>Oct 15</td>
+                            <td><span class="pill pill-amber">Due Soon</span></td>
+                        </tr>
+                        <tr>
+                            <td>#R-1031</td>
+                            <td>Ghost Diagnostics</td>
+                            <td>Transit Van, 2× Drones</td>
+                            <td>Oct 10</td>
+                            <td>Oct 20</td>
+                            <td><span class="pill pill-green">Scheduled</span></td>
+                        </tr>
+                        <tr>
+                            <td>#R-1032</td>
+                            <td>Filmhouse</td>
+                            <td>RED Komodo</td>
+                            <td>Oct 05</td>
+                            <td>Oct 16</td>
+                            <td><span class="pill pill-red">Overdue</span></td>
+                        </tr>
+                        <tr>
+                            <td>#R-1033</td>
+                            <td>Vision Crew</td>
+                            <td>Drone Pro X</td>
+                            <td>Oct 02</td>
+                            <td>Oct 10</td>
+                            <td><span class="pill pill-gray">Returned</span></td>
+                        </tr>
+                        <tr>
+                            <td>#R-1034</td>
+                            <td>MediaOne</td>
+                            <td>FX3 Kit</td>
+                            <td>Oct 09</td>
+                            <td>Oct 11</td>
+                            <td><span class="pill pill-darkred">Cancelled</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const ctxA = document.getElementById('chartAvailability');
+        new Chart(ctxA, {
+            type: 'bar',
+            data: {
+                labels: ['PPE','Vehicles','Drones','Cameras','Mics','Tools'],
+                datasets: [{
+                    label: 'Available',
+                    data: [56, 12, 8, 22, 18, 14],
+                    backgroundColor: 'rgba(30,111,255,0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#B8BCC7' } },
+                    y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#B8BCC7' }, beginAtZero: true }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        const ctxM = document.getElementById('chartMaintenance');
+        new Chart(ctxM, {
+            type: 'doughnut',
+            data: {
+                labels: ['OK','Scheduled','Urgent'],
+                datasets: [{
+                    data: [84, 5, 2],
+                    backgroundColor: ['#22C55E','#F59E0B','#EF4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: { legend: { labels: { color: '#B8BCC7' } } }
+            }
+        });
+    </script>
+}
