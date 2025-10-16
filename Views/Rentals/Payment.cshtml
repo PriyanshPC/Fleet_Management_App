@@ -1,5 +1,215 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    // Optional rental id, only for display
+    var rid = (string?)Context.Request.Query["id"];
+    ViewData["Title"] = rid is not null ? $"Payment • #{rid}" : "Payment";
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Payment</h2>
+        <div class="kicker">
+            @if (rid is not null)
+            {
+                @:Record a payment for rental <strong>#@rid</strong>.
+            }
+            else
+            {
+                @:Record a payment.
+            }
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Always go back to the list -->
+        <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+
+<div class="row g-3">
+
+    <!-- LEFT: Payment form -->
+    <div class="col-lg-7">
+        <div class="card-panel">
+            <div class="fw-semibold mb-2">Record Payment</div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small-label">Amount Due</label>
+                    <input id="amountDue" class="form-control text-end" value="$0.00" disabled />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Payment Amount</label>
+                    <input id="amountPay" type="number" min="0" step="0.01" class="form-control text-end" value="0.00" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Method</label>
+                    <select id="method" class="form-select">
+                        <option>Card</option>
+                        <option>Cash</option>
+                        <option>Online</option>
+                        <option>Split</option>
+                    </select>
+                </div>
+
+                <!-- Method-specific fields -->
+                <div class="col-md-6 method-card">
+                    <label class="form-label small-label">Card Number</label>
+                    <input id="cardNum" class="form-control" placeholder="**** **** **** 1234" />
+                </div>
+                <div class="col-md-3 method-card">
+                    <label class="form-label small-label">Expiry</label>
+                    <input id="cardExp" class="form-control" placeholder="MM/YY" />
+                </div>
+                <div class="col-md-3 method-card">
+                    <label class="form-label small-label">CVV</label>
+                    <input id="cardCvv" class="form-control" placeholder="***" />
+                </div>
+
+                <div class="col-md-6 method-online d-none">
+                    <label class="form-label small-label">Reference</label>
+                    <input id="onlineRef" class="form-control" placeholder="Txn / UTR / Ref #" />
+                </div>
+
+                <div class="col-md-6 method-cash d-none">
+                    <label class="form-label small-label">Cash Notes</label>
+                    <input id="cashNotes" class="form-control" placeholder="Till drawer / Clerk ID ..." />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label small-label">Notes</label>
+                    <textarea id="notes" class="form-control" rows="2" placeholder="Any extra info for this payment..."></textarea>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" id="btnRecord" class="btn btn-green d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-cash-coin"></i> Record Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Summary + Receipts -->
+    <div class="col-lg-5">
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-2">Charges Summary</div>
+
+            <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span id="sumItems">$0.00</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Discount</span><span id="sumDiscount">-$0.00</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Tax</span><span id="sumTax">$0.00</span></div>
+            <hr class="dropdown-divider" />
+            <div class="d-flex justify-content-between fw-semibold"><span>Total</span><span id="sumGrand">$0.00</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Paid</span><span id="sumPaid">$0.00</span></div>
+            <div class="d-flex justify-content-between fw-semibold"><span>Balance Due</span><span id="sumDue">$0.00</span></div>
+        </div>
+
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Receipts</div>
+                <button type="button" id="btnMarkPaid" class="btn btn-secondary btn-sm">Mark as Paid</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table-darkish" id="receiptsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Method</th>
+                            <th class="text-end">Amount</th>
+                            <th>Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- rows injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        /* ---------- Mock pull from Details (for demo) ----------
+           In real app, populate these from server for rental @rid */
+        let itemsTotal  = 820.00;  // sample
+        let discount    = 50.00;
+        let tax         = Math.round((itemsTotal - discount) * 0.13 * 100)/100;
+        let grand       = itemsTotal - discount + tax;
+        let paid        = 0.00;
+
+        const $ = sel => document.querySelector(sel);
+        function money(n){ return n.toLocaleString(undefined,{style:'currency',currency:'USD'}); }
+        function refreshSummary(){
+          $('#sumItems').textContent   = money(itemsTotal);
+          $('#sumDiscount').textContent= '-' + money(discount);
+          $('#sumTax').textContent     = money(tax);
+          $('#sumGrand').textContent   = money(grand);
+          $('#sumPaid').textContent    = money(paid);
+          $('#sumDue').textContent     = money(Math.max(0, grand - paid));
+          $('#amountDue').value        = money(Math.max(0, grand - paid));
+        }
+        refreshSummary();
+
+        /* ---------- Receipts table ---------- */
+        let rcptNo = 0;
+        function addReceiptRow({date, method, amount, ref}){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${++rcptNo}</td>
+            <td>${date}</td>
+            <td>${method}</td>
+            <td class="text-end">${money(amount)}</td>
+            <td>${ref||''}</td>
+          `;
+          $('#receiptsTable tbody').prepend(tr);
+        }
+
+        /* ---------- Method-specific fields ---------- */
+        function updateMethodFields(){
+          const m = $('#method').value;
+          document.querySelectorAll('.method-card').forEach(e=>e.classList.add('d-none'));
+          document.querySelectorAll('.method-cash').forEach(e=>e.classList.add('d-none'));
+          document.querySelectorAll('.method-online').forEach(e=>e.classList.add('d-none'));
+          if(m==='Card')  document.querySelectorAll('.method-card').forEach(e=>e.classList.remove('d-none'));
+          if(m==='Cash')  document.querySelectorAll('.method-cash').forEach(e=>e.classList.remove('d-none'));
+          if(m==='Online')document.querySelectorAll('.method-online').forEach(e=>e.classList.remove('d-none'));
+          if(m==='Split'){ document.querySelectorAll('.method-card,.method-online').forEach(e=>e.classList.remove('d-none')); }
+        }
+        $('#method').addEventListener('change', updateMethodFields);
+        updateMethodFields();
+
+        /* ---------- Record Payment (front-end only) ---------- */
+        $('#btnRecord').addEventListener('click', ()=>{
+          const amt = Number($('#amountPay').value || 0);
+          if(amt <= 0){ alert('Enter a payment amount.'); return; }
+          const due = Math.max(0, grand - paid);
+          if(amt > due){ if(!confirm('Amount exceeds balance due. Record anyway?')) return; }
+
+          const method = $('#method').value;
+          const ref = (method==='Card') ? ($('#cardNum').value.slice(-4) ? '****'+$('#cardNum').value.slice(-4) : '')
+                    : (method==='Online') ? $('#onlineRef').value
+                    : (method==='Split')  ? `${$('#onlineRef').value} & ****${($('#cardNum').value||'').slice(-4)}`
+                    : '';
+          paid += amt;
+          addReceiptRow({date: new Date().toLocaleString(), method, amount: amt, ref});
+          refreshSummary();
+          $('#amountPay').value = '0.00';
+        });
+
+        /* ---------- Mark fully paid ---------- */
+        $('#btnMarkPaid').addEventListener('click', ()=>{
+          const due = Math.max(0, grand - paid);
+          if(due > 0){
+            addReceiptRow({date: new Date().toLocaleString(), method:'Adjust', amount: due, ref:'MARK-PAID'});
+            paid += due;
+            refreshSummary();
+          } else {
+            alert('Already paid in full.');
+          }
+        });
+    </script>
 }

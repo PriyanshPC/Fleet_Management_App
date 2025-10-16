@@ -1,5 +1,235 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model Fleet_Management_App.Models.RentalListItem
+@using System.Globalization
 @{
+    ViewData["Title"] = "Rental Details";
+
+    // ===== Mock Line Items (until DB is wired) =====
+    // You can replace this with data from your DB/Service later.
+    var items = new List<(string Name, string Category, string Asset, int Qty, decimal RatePerDay, int Days)>
+    {
+        ("RED Komodo 6K", "Cameras", "CAM-REDK-0034", 1, 120.00m,  (@Model.Due - @Model.Out).Days),
+        ("V-Mount Battery", "Tools", "BAT-VMT-1122", 2, 10.00m,     (@Model.Due - @Model.Out).Days),
+        ("Prime Lens Set", "Cameras", "LNS-PRM-2210", 1, 55.00m,    (@Model.Due - @Model.Out).Days),
+    };
+
+    decimal itemsTotal = items.Sum(i => i.Qty * i.RatePerDay * i.Days);
+    decimal discount = 50.00m;                  // sample
+    decimal tax = Math.Round(itemsTotal * 0.13m, 2); // 13% HST sample
+    decimal grandTotal = itemsTotal - discount + tax;
+
+    string Money(decimal n) => n.ToString("C", CultureInfo.CurrentCulture);
+
+    string StatusPill(string s) => s switch
+    {
+        "On Rent" => "pill pill-blue",
+        "Due Soon" => "pill pill-amber",
+        "Overdue" => "pill pill-red",
+        "Returned" => "pill pill-gray",
+        "Cancelled" => "pill pill-darkred",
+        "Scheduled" => "pill pill-green",
+        _ => "pill"
+    };
+
+    var statuses = new[] { "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Rental Details</h2>
+        <div class="kicker">View rental information, items, payments, and status history.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+        <a class="btn btn-green d-inline-flex align-items-center gap-2" asp-controller="Rentals" asp-action="Payment" asp-route-id="@Model.Id">
+            <i class="bi bi-credit-card-2-front"></i> Payment
+        </a>
+    </div>
+</div>
+
+<!-- ===== HEADER STRIP ===== -->
+<div class="card-panel mb-3">
+    <div class="row g-3 align-items-center">
+        <div class="col-lg-4">
+            <div class="d-flex flex-column">
+                <div class="text-muted" style="font-size:12px;">Rental ID</div>
+                <div class="fs-5 fw-semibold">#@Model.Id</div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="d-flex flex-column">
+                <div class="text-muted" style="font-size:12px;">Client</div>
+                <div class="fw-semibold">@Model.Client</div>
+                <div class="text-muted" style="font-size:13px;">Category: @Model.Category</div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="d-flex gap-2 justify-content-lg-end flex-wrap">
+                <div class="d-flex flex-column">
+                    <label class="small-label">Status</label>
+                    <select id="statusSelect" class="form-select">
+                        @foreach (var s in statuses)
+                        {
+                            <option selected="@(s == Model.Status)">@s</option>
+                        }
+                    </select>
+                </div>
+                <div class="d-flex flex-column">
+                    <label class="small-label">Actions</label>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-secondary" id="btnMarkReturned"><i class="bi bi-box-arrow-in-left"></i> Mark Returned</button>
+                        <button class="btn btn-danger" id="btnCancel"><i class="bi bi-x-octagon"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- ===== LEFT COLUMN ===== -->
+    <div class="col-lg-8">
+
+        <!-- Items -->
+        <div class="card-panel mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Items</div>
+                <a class="link-muted" href="#"><i class="bi bi-pencil-square"></i> Edit Items</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-darkish">
+                    <thead>
+                        <tr>
+                            <th>Equipment</th>
+                            <th>Category</th>
+                            <th>Serial / Asset ID</th>
+                            <th>Qty</th>
+                            <th class="text-end">Rate</th>
+                            <th class="text-end">Days</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in items)
+                        {
+                            var sub = it.Qty * it.RatePerDay * it.Days;
+                            <tr>
+                                <td>@it.Name</td>
+                                <td>@it.Category</td>
+                                <td>@it.Asset</td>
+                                <td>@it.Qty</td>
+                                <td class="text-end">@Money(it.RatePerDay)</td>
+                                <td class="text-end">@it.Days</td>
+                                <td class="text-end">@Money(sub)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" class="text-end text-muted">Items Total</td>
+                            <td class="text-end">@Money(itemsTotal)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Notes</div>
+                <a class="link-muted" href="#"><i class="bi bi-pencil"></i> Edit</a>
+            </div>
+            <div class="text-muted" style="white-space:pre-wrap; font-size:13px;">
+                Customer requests flexible return window due to late shoot schedule.
+                Check lens calibration upon return.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== RIGHT COLUMN ===== -->
+    <div class="col-lg-4">
+
+        <!-- Schedule -->
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-2">Schedule</div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Date Out</span><span>@Model.Out.ToString("MMM dd, yyyy")</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Due Date</span><span>@Model.Due.ToString("MMM dd, yyyy")</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Created</span><span>@Model.Out.AddDays(-4).ToString("MMM dd, yyyy • HH:mm")</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Last Updated</span><span>@DateTime.Now.ToString("MMM dd, yyyy • HH:mm")</span></div>
+        </div>
+
+        <!-- Charges -->
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-2">Charges</div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span>@Money(itemsTotal)</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Discount</span><span>-@Money(discount)</span></div>
+            <div class="d-flex justify-content-between"><span class="text-muted">Tax</span><span>@Money(tax)</span></div>
+            <hr class="dropdown-divider" />
+            <div class="d-flex justify-content-between fw-semibold"><span>Total</span><span>@Money(grandTotal)</span></div>
+            <a class="btn btn-green w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-2"
+               asp-controller="Rentals" asp-action="Payment" asp-route-id="@Model.Id">
+                <i class="bi bi-credit-card"></i> Take Payment
+            </a>
+        </div>
+
+        <!-- Activity -->
+        <div class="card-panel">
+            <div class="fw-semibold mb-2">Activity</div>
+            <div class="timeline">
+                <div class="tl-row">
+                    <div class="tl-dot"></div>
+                    <div>
+                        <div class="fw-semibold">
+                            Status set to <span class="@StatusPill(Model.Status)">@Model.Status</span>
+                        </div>
+                        <div class="text-muted" style="font-size:12px;">@Model.Out.ToString("MMM dd, yyyy") • 10:05 by Admin</div>
+                    </div>
+                </div>
+                <div class="tl-row">
+                    <div class="tl-dot"></div>
+                    <div>
+                        <div class="fw-semibold">Items updated</div>
+                        <div class="text-muted" style="font-size:12px;">@Model.Out.AddDays(-1).ToString("MMM dd, yyyy") • 16:12 by Admin</div>
+                    </div>
+                </div>
+                <div class="tl-row">
+                    <div class="tl-dot"></div>
+                    <div>
+                        <div class="fw-semibold">Rental created</div>
+                        <div class="text-muted" style="font-size:12px;">@Model.Out.AddDays(-4).ToString("MMM dd, yyyy") • 09:14 by Admin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // UI-only actions for now; later, post to controller
+        const statusSelect = document.getElementById('statusSelect');
+        const activity = document.querySelector('.timeline');
+
+        document.getElementById('btnMarkReturned')?.addEventListener('click', () => {
+          statusSelect.value = "Returned";
+          prependActivity('Status set to <span class="pill pill-gray">Returned</span>');
+        });
+
+        document.getElementById('btnCancel')?.addEventListener('click', () => {
+          statusSelect.value = "Cancelled";
+          prependActivity('Status set to <span class="pill pill-darkred">Cancelled</span>');
+        });
+
+        function prependActivity(html){
+          const row = document.createElement('div');
+          row.className = 'tl-row';
+          row.innerHTML = `<div class="tl-dot"></div><div><div class="fw-semibold">${html}</div><div class="text-muted" style="font-size:12px;">Just now • by Admin</div></div>`;
+          activity.prepend(row);
+        }
+    </script>
 }

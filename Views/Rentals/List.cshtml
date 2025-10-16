@@ -1,5 +1,174 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model IEnumerable<Fleet_Management_App.Models.RentalListItem>
 @{
+    ViewData["Title"] = "Rentals – List";
+    var statuses = new[] { "All", "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
+    var categories = new[] { "All", "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Rentals</h2>
+        <div class="kicker">Search, filter, and manage active & past rentals.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-green d-inline-flex align-items-center gap-2"
+           asp-controller="Rentals" asp-action="New">
+            <i class="bi bi-plus-lg"></i> New Rental
+        </a>
+    </div>
+</div>
+
+<!-- Filters toolbar -->
+<div class="card-panel mb-3">
+    <form id="filterForm" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small-label">Search</label>
+            <input id="q" class="form-control" placeholder="Rental ID, client, item…" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Status</label>
+            <select id="status" class="form-select">
+                @foreach (var s in statuses)
+                {
+                    <option>@s</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Category</label>
+            <select id="category" class="form-select">
+                @foreach (var c in categories)
+                {
+                    <option>@c</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Out From</label>
+            <input id="from" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Due Until</label>
+            <input id="to" type="date" class="form-control" />
+        </div>
+        <div class="col-md-1 d-grid">
+            <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
+        </div>
+    </form>
+</div>
+
+<!-- Results -->
+<div class="card-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-semibold">Results</div>
+        <div class="text-muted" id="resultCount" style="font-size:13px;">@Model.Count() results</div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table-darkish" id="rentalsTable">
+            <thead>
+                <tr>
+                    <th>Rental ID</th>
+                    <th>Client</th>
+                    <th>Category</th>
+                    <th>Items</th>
+                    <th>Out</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=@r.Id">
+                        <td>@($"#{r.Id}")</td>
+                        <td>@r.Client</td>
+                        <td>@r.Category</td>
+                        <td>@r.Items</td>
+                        <td>@r.Out.ToString("MMM dd")</td>
+                        <td>@r.Due.ToString("MMM dd")</td>
+                        <td>
+                            @{
+                                var css = r.Status switch
+                                {
+                                    "On Rent" => "pill pill-blue",
+                                    "Due Soon" => "pill pill-amber",
+                                    "Overdue" => "pill pill-red",
+                                    "Returned" => "pill pill-gray",
+                                    "Cancelled" => "pill pill-darkred",
+                                    "Scheduled" => "pill pill-green",
+                                    _ => "pill"
+                                };
+                            }
+                            <span class="@css">@r.Status</span>
+                        </td>
+                        <td class="text-end">@r.Total.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Clickable table rows (and keyboard accessible)
+        (function attachRowLinks(){
+          document.querySelectorAll('#rentalsTable tbody tr.row-link[data-href]').forEach(tr => {
+            tr.addEventListener('click', () => location.href = tr.dataset.href);
+            tr.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
+            });
+          });
+        })();
+
+        // Optional client-side filtering: hide/show rows (no data loss)
+        function applyFilters(){
+          const q = document.getElementById('q').value.trim().toLowerCase();
+          const s = document.getElementById('status').value;
+          const c = document.getElementById('category').value;
+          const from = document.getElementById('from').value ? new Date(document.getElementById('from').value) : null;
+          const to   = document.getElementById('to').value ? new Date(document.getElementById('to').value) : null;
+
+          let visible = 0;
+          document.querySelectorAll('#rentalsTable tbody tr').forEach(tr => {
+            const tds = tr.children;
+            const idTxt   = tds[0].textContent.trim().toLowerCase();
+            const client  = tds[1].textContent.trim().toLowerCase();
+            const cat     = tds[2].textContent.trim();
+            const items   = tds[3].textContent.trim().toLowerCase();
+            const outTxt  = tds[4].textContent.trim();
+            const dueTxt  = tds[5].textContent.trim();
+            const status  = tds[6].textContent.trim();
+
+            const blob = (idTxt + " " + client + " " + items);
+            if (q && !blob.includes(q)) { tr.style.display = "none"; return; }
+            if (s !== "All" && status !== s) { tr.style.display = "none"; return; }
+            if (c !== "All" && cat !== c) { tr.style.display = "none"; return; }
+
+            // date check (parse "Oct 12")
+            const parseShort = (t) => new Date(`${t} ${new Date().getFullYear()}`);
+            const out = parseShort(outTxt), due = parseShort(dueTxt);
+            if (from && out < from) { tr.style.display = "none"; return; }
+            if (to && due > to)     { tr.style.display = "none"; return; }
+
+            tr.style.display = ""; visible++;
+          });
+          document.getElementById('resultCount').textContent = `${visible} result${visible===1?'':'s'}`;
+        }
+
+        ['q','status','category','from','to'].forEach(id=>{
+          document.getElementById(id).addEventListener('input', applyFilters);
+          document.getElementById(id).addEventListener('change', applyFilters);
+        });
+        document.getElementById('clearFilters').addEventListener('click', ()=>{
+          document.getElementById('q').value='';
+          document.getElementById('status').value='All';
+          document.getElementById('category').value='All';
+          document.getElementById('from').value='';
+          document.getElementById('to').value='';
+          applyFilters();
+        });
+    </script>
 }

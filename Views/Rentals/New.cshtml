@@ -1,5 +1,229 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "New Rental";
+    var statuses = new[] { "Scheduled", "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled" };
+    var categories = new[] { "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">New Rental</h2>
+        <div class="kicker">Create a new rental with customer, schedule, and items.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<form id="newRentalForm" autocomplete="off">
+    <div class="row g-3">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-8">
+
+            <!-- Customer & Schedule -->
+            <div class="card-panel mb-3">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small-label">Client Name</label>
+                        <input id="clientName" class="form-control" placeholder="Company / Person" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Email</label>
+                        <input id="clientEmail" type="email" class="form-control" placeholder="client@email.com" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Phone</label>
+                        <input id="clientPhone" class="form-control" placeholder="+1 (555) 000-0000" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Status</label>
+                        <select id="status" class="form-select">
+                            @foreach (var s in statuses)
+                            {
+                                <option>@s</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Date Out</label>
+                        <input id="dateOut" type="date" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Due Date</label>
+                        <input id="dateDue" type="date" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small-label">Category</label>
+                        <select id="category" class="form-select">
+                            @foreach (var c in categories)
+                            {
+                                <option>@c</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="card-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold">Items</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="addRow" class="btn btn-secondary"><i class="bi bi-plus-lg"></i> Add Item</button>
+                        <button type="button" id="clearRows" class="btn btn-danger"><i class="bi bi-trash3"></i> Clear</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-darkish" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>Equipment</th>
+                                <th>Category</th>
+                                <th>Serial / Asset ID</th>
+                                <th>Qty</th>
+                                <th class="text-end">Rate / Day</th>
+                                <th class="text-end">Days</th>
+                                <th class="text-end">Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" class="text-end text-muted">Items Total</td>
+                                <td class="text-end" id="itemsTotal">$0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card-panel mb-3">
+                <label class="form-label small-label">Internal Notes</label>
+                <textarea id="notes" class="form-control" rows="3" placeholder="Any handling, delivery, or return instructions..."></textarea>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-4">
+
+            <div class="card-panel">
+                <div class="fw-semibold mb-2">Summary</div>
+                <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span id="sumItems">$0.00</span></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Discount</span>
+                    <input id="discount" type="number" class="form-control" style="width:120px;" value="0" min="0" step="1" />
+                </div>
+                <div class="d-flex justify-content-between"><span class="text-muted">Tax (13%)</span><span id="tax">$0.00</span></div>
+                <hr class="dropdown-divider" />
+                <div class="d-flex justify-content-between fw-semibold"><span>Total</span><span id="grandTotal">$0.00</span></div>
+
+                <button type="submit" class="btn btn-green w-100 mt-3 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-check2-circle"></i> Create Rental
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        /* ---------- Helpers ---------- */
+        const money = n => n.toLocaleString(undefined,{style:'currency',currency:'USD'});
+        function daysBetween(a, b){
+          const d1=new Date(a), d2=new Date(b);
+          return Math.max(1, Math.ceil((d2-d1)/(1000*60*60*24)));
+        }
+
+        /* ---------- Items table ---------- */
+        const TBODY = document.querySelector('#itemsTable tbody');
+        function addRow(pref = {}){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input class="form-control item-name" placeholder="e.g., FX6 Camera" value="${pref.name||''}"/></td>
+            <td>
+              <select class="form-select item-cat">
+                ${['Vehicles','Drones','Cameras','Mics','PPE','Tools'].map(c=>`<option ${pref.category===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+            </td>
+            <td><input class="form-control item-asset" placeholder="Asset ID" value="${pref.asset||''}"/></td>
+            <td><input type="number" class="form-control item-qty" min="1" step="1" value="${pref.qty||1}"/></td>
+            <td><input type="number" class="form-control item-rate text-end" min="0" step="0.01" value="${pref.rate||0}"/></td>
+            <td><input type="number" class="form-control item-days text-end" min="1" step="1" value="${pref.days||1}"/></td>
+            <td class="text-end item-sub">$0.00</td>
+            <td class="text-end"><button type="button" class="btn btn-danger btn-sm del-row"><i class="bi bi-x-lg"></i></button></td>
+          `;
+          TBODY.appendChild(tr);
+          bindRow(tr);
+          recalc();
+        }
+
+        function bindRow(tr){
+          tr.querySelectorAll('input,select').forEach(el=> el.addEventListener('input', recalc));
+          tr.querySelector('.del-row').addEventListener('click', ()=>{ tr.remove(); recalc(); });
+        }
+
+        document.getElementById('addRow').addEventListener('click', ()=> addRow());
+        document.getElementById('clearRows').addEventListener('click', ()=> { TBODY.innerHTML=''; recalc(); });
+
+        /* Seed a couple of rows */
+        addRow({name:'RED Komodo 6K', category:'Cameras', asset:'CAM-REDK-0034', qty:1, rate:120, days:3});
+        addRow({name:'V-Mount Battery', category:'Tools', asset:'BAT-VMT-1122', qty:2, rate:10, days:3});
+
+        /* ---------- Totals ---------- */
+        function recalc(){
+          // sync "Days" with date range if provided
+          const out = document.getElementById('dateOut').value, due = document.getElementById('dateDue').value;
+          const rangeDays = (out && due) ? daysBetween(out, due) : null;
+
+          let itemsTotal = 0;
+          TBODY.querySelectorAll('tr').forEach(tr=>{
+            const qty  = Number(tr.querySelector('.item-qty').value || 0);
+            const rate = Number(tr.querySelector('.item-rate').value || 0);
+            const days = rangeDays ?? Number(tr.querySelector('.item-days').value || 1);
+            tr.querySelector('.item-days').value = days; // reflect date range
+            const sub = qty * rate * days;
+            tr.querySelector('.item-sub').textContent = money(sub);
+            itemsTotal += sub;
+          });
+
+          document.getElementById('itemsTotal').textContent = money(itemsTotal);
+          document.getElementById('sumItems').textContent   = money(itemsTotal);
+
+          const discount = Number(document.getElementById('discount').value || 0);
+          const tax = Math.round((itemsTotal - discount) * 0.13 * 100)/100;
+          const grand = itemsTotal - discount + tax;
+
+          document.getElementById('tax').textContent       = money(Math.max(0,tax));
+          document.getElementById('grandTotal').textContent= money(Math.max(0,grand));
+        }
+        ['dateOut','dateDue','discount'].forEach(id=> document.getElementById(id).addEventListener('input', recalc));
+
+        /* ---------- Submit (mock create) ---------- */
+        document.getElementById('newRentalForm').addEventListener('submit', (e)=>{
+          e.preventDefault();
+
+          // Very light validation
+          const name = document.getElementById('clientName').value.trim();
+          const out  = document.getElementById('dateOut').value;
+          const due  = document.getElementById('dateDue').value;
+          if(!name || !out || !due || TBODY.children.length===0){
+            alert('Please fill client, dates, and add at least one item.'); return;
+          }
+
+          // Mock ID generation (in real app, server returns this)
+          const id = 'R-' + Math.floor(1000 + Math.random()*9000);
+          // Redirect to the new details page
+          window.location.href = '@Url.Action("Details", "Rentals")' + '?id=' + encodeURIComponent(id);
+        });
+    </script>
 }
