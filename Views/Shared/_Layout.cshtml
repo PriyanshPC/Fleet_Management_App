@@ -1,37 +1,153 @@
 ﻿@{
-    Layout = null;
-    var title = ViewData["Title"] as string ?? "Fleet";
+    var userName = (User?.Identity?.IsAuthenticated ?? false)
+        ? (User.Identity?.Name ?? "Administrator")
+        : "Guest";
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@title</title>
+    <title>@ViewData["Title"] - Ghostbusters Fleet</title>
 
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <!-- Bootstrap + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- App styles -->
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/css/nav.css" rel="stylesheet" />
 </head>
-<body class="bg-body">
-    <header>
-        @await Html.PartialAsync("_TopNav")
-    </header>
+<body>
 
-    <div class="container-fluid">
-        <div class="row flex-nowrap">
-            <aside class="col-auto col-md-3 col-xl-2 px-sm-2 bg-light border-end">
-                @await Html.PartialAsync("_SideNav")
-            </aside>
+    <!-- ===== Top Navigation Bar ===== -->
+    <nav class="navbar topbar px-3 px-md-4">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
 
-            <main class="col py-3">
-                @RenderBody()
-            </main>
+            <!-- Brand (left) → Dashboard -->
+            <a class="navbar-brand d-inline-flex align-items-center gap-2"
+               asp-controller="Dashboard" asp-action="Index" title="Go to Dashboard">
+                <i class="bi bi-hexagon-fill brand-icon"></i>
+                <span class="brand-text">Ghostbusters Inc.</span>
+            </a>
+
+            <!-- Right cluster: MENUS + Refresh + User -->
+            <div class="d-flex align-items-center gap-2">
+
+                <!-- Primary nav menu (right-aligned) -->
+                <ul class="navbar-nav flex-row gap-1 me-2">
+
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                            Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Rentals (dropdown) -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Rentals
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-controller="Rentals" asp-action="List">Rental List</a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-controller="Rentals" asp-action="New">New Rental</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Equipment (dropdown) -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Equipment
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-controller="Equipment" asp-action="List">Equipment List</a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-controller="Maintenance" asp-action="Index">Maintenance</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Tracking -->
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Tracking" asp-action="Index">
+                            Tracking
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Refresh icon -->
+                <button class="icon-btn" type="button" data-bs-toggle="modal" data-bs-target="#refreshModal"
+                        title="Check for updates">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+
+                <!-- User dropdown -->
+                <div class="dropdown">
+                    <button class="icon-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                        <i class="bi bi-person"></i>   <!-- changed to 'person' -->
+                    </button>
+                    <!-- 'dropdown-menu-end' keeps the menu anchored to the button's right edge
+                         and expands left into the page -->
+                    <ul class="dropdown-menu dropdown-menu-end account-menu">
+                        <li>
+                            <div class="dropdown-header d-flex align-items-center gap-2">
+                                <i class="bi bi-person"></i>
+                                <div>
+                                    <div class="fw-semibold">@((User?.Identity?.Name) ?? "Administrator")</div>
+                                    @{
+                                        var uname = User?.FindFirst("username")?.Value;
+                                        if (!string.IsNullOrWhiteSpace(uname))
+                                        {
+                                            <div class="text-muted small">@uname</div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <a class="dropdown-item text-danger" asp-controller="Auth" asp-action="Logout">
+                                <i class="bi bi-box-arrow-right me-2"></i>Log out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Page Content ===== -->
+    <main class="container-fluid py-4">
+        @RenderBody()
+    </main>
+
+    <!-- ===== Refresh Modal ===== -->
+    <div class="modal fade" id="refreshModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content card-dark p-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle"></i>
+                    <div class="fw-semibold">Website has been updated.</div>
+                </div>
+                <div class="mt-3 d-flex justify-content-end gap-2">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a class="btn btn-primary" href="" onclick="location.reload();">Refresh</a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="~/lib/popper/dist/umd/popper.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <!-- ===== Scripts ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js"></script>
     @RenderSection("Scripts", required: false)
 </body>

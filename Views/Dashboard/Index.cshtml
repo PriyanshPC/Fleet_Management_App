@@ -1,76 +1,12 @@
 ﻿@{
-    ViewData["Title"] = "Dashboard";
+    ViewBag.Title = "Dashboard";
 }
-<div class="container-fluid">
-    <div class="row g-3 mb-3">
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted mb-1">Available</h6>
-                    <div class="display-6 fw-bold">128</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted mb-1">Reserved</h6>
-                    <div class="display-6 fw-bold">24</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted mb-1">Out for Rental</h6>
-                    <div class="display-6 fw-bold">12</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted mb-1">Under Maintenance</h6>
-                    <div class="display-6 fw-bold">5</div>
-                </div>
-            </div>
-        </div>
+<div class="app-card p-3 d-flex align-items-center justify-content-between">
+    <div>
+        <h2 class="h5 mb-1">Dashboard</h2>
+        <p class="text-muted mb-0">We’ll add graphs and active rentals next.</p>
     </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-white">
-            <strong>Upcoming Pickups & Returns</strong>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Rental #</th>
-                            <th>Scope</th>
-                            <th>Customer / Team</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>RNT-000231</td>
-                            <td>External</td>
-                            <td>Acme Studios</td>
-                            <td>2025-11-10</td>
-                            <td>2025-11-15</td>
-                            <td><span class="badge text-bg-warning">Reserved</span></td>
-                            <td class="text-end">
-                                <a asp-controller="Rentals" asp-action="Details" asp-route-id="000231" class="btn btn-sm btn-outline-primary">View</a>
-                            </td>
-                        </tr>
-                        <!-- more rows -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    <a href="@Url.Action("New", "Rentals")" class="btn btn-outline-light">
+        <i class="bi bi-plus-lg me-1"></i> New Rental
+    </a>
 </div>

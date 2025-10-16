@@ -6,9 +6,5 @@
       "library": "bootstrap@5.3.3",
       "destination": "wwwroot/lib/bootstrap/"
     },
-    {
-      "library": "@popperjs/core@2",
-      "destination": "wwwroot/lib/popperjs/core/"
-    }
   ]
 }

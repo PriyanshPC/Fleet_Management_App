@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fleet_Management_App.Controllers
 {
     [Authorize]
-    public class MaintenanceController : Controller
+    public class TrackingController : Controller
     {
         public IActionResult Index() => View();
     }

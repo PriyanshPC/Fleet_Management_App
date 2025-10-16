@@ -1,0 +1,178 @@
+﻿
+/* Top bar: darker than page, subtle line + shadow */
+.topbar {
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    overflow: visible; /* allow dropdowns to extend */
+}
+
+/* Brand */
+.navbar-brand {
+    color: #fff;
+    text-decoration: none;
+}
+
+    .navbar-brand:hover {
+        color: #fff;
+        opacity: 0.9;
+    }
+
+.brand-icon {
+    font-size: 18px;
+    color: var(--primary);
+}
+
+.brand-text {
+    font-weight: 600;
+}
+
+/* Primary nav links (right cluster) */
+.navbar-nav {
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.nav-link {
+    color: #d8d8e3;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+    .nav-link:hover,
+    .nav-link:focus {
+        color: #fff;
+        background: var(--secondary-hover);
+    }
+
+    .nav-link.active,
+    .nav-link.dropdown-toggle.show {
+        color: #fff;
+        background: var(--secondary);
+    }
+
+/* Icon buttons (Refresh, User) */
+.icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    color: #fff;
+    transition: background 0.2s ease;
+}
+
+    .icon-btn:hover {
+        background: var(--secondary-hover);
+    }
+
+    .icon-btn:active {
+        background: var(--secondary-active);
+    }
+
+    .icon-btn i.bi-person {
+        font-size: 18px;
+    }
+/* user icon size */
+
+/* ========== Dropdowns ========== */
+
+/* Keep menus anchored under their toggles and overlay the page (no reflow) */
+.topbar .dropdown {
+    position: relative;
+}
+
+.topbar .dropdown-menu {
+    position: absolute; /* Bootstrap also uses absolute; keep consistent */
+    top: calc(100% + 0.5rem);
+    /* Let Popper/Bootstrap decide left/right unless overridden below */
+    z-index: 1100;
+    /* Theme variables for dark dropdowns */
+    --bs-dropdown-bg: var(--surface);
+    --bs-dropdown-border-color: var(--border);
+    --bs-dropdown-color: #fff;
+    --bs-dropdown-link-color: #fff;
+    --bs-dropdown-link-hover-bg: rgba(46, 144, 255, 0.16);
+    --bs-dropdown-link-hover-color: #fff;
+    --bs-dropdown-link-active-bg: var(--primary);
+    --bs-dropdown-link-active-color: #fff;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    /* Prevent hover/active backgrounds from bleeding outside rounded corners */
+    border-radius: 12px;
+    overflow: hidden;
+    /* Use inner padding instead of item margins for clean clipping */
+    padding: 6px;
+    min-width: 200px;
+}
+
+    /* User/account menu: anchor to the button's right edge so it opens LEFT */
+    .topbar .dropdown-menu.account-menu {
+        right: 0;
+        left: auto;
+    }
+
+/* Dropdown items (no margins; rely on menu padding + clipping) */
+.topbar .dropdown-item {
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: background 0.15s ease, color 0.15s ease;
+    outline: none;
+}
+
+    .topbar .dropdown-item:hover,
+    .topbar .dropdown-item:focus {
+        background: rgba(46, 144, 255, 0.16);
+        color: #fff;
+    }
+
+    .topbar .dropdown-item.active,
+    .topbar .dropdown-item:active {
+        background: var(--primary) !important;
+        color: #fff !important;
+    }
+
+/* Divider + header */
+.dropdown-divider {
+    border-color: var(--border);
+    margin: 6px 0;
+}
+
+.dropdown-header {
+    color: #fff;
+    font-size: 13px;
+    padding: 6px 10px 4px;
+}
+
+/* Ensure toggle looks good while menu is open */
+.topbar .nav-link.dropdown-toggle.show,
+.topbar .nav-link.dropdown-toggle:focus {
+    background: var(--secondary);
+    color: #fff;
+    border-radius: 8px;
+}
+
+/* ========== Responsive tweaks ========== */
+@media (max-width: 768px) {
+    .nav-link {
+        padding: 0.4rem 0.6rem;
+    }
+
+    .icon-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .brand-text {
+        font-size: 15px;
+    }
+}
