@@ -381,3 +381,28 @@ a.link-muted {
         outline: 2px solid var(--focus);
         outline-offset: -2px;
     }
+
+/* Hover state for clickable rows (already used elsewhere) */
+.table-darkish tbody tr.row-link {
+    cursor: pointer;
+    transition: background .12s ease;
+}
+
+    .table-darkish tbody tr.row-link:hover {
+        background: rgba(255,255,255,.05);
+    }
+
+/* Quick form spacing fix for maintenance right column */
+#maintForm .form-control,
+#maintForm .form-select {
+    font-size: 14px;
+    padding: 6px 8px;
+}
+
+/* Tracking map mock */
+.map-mock {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}

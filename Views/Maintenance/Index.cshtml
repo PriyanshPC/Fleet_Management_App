@@ -1,5 +1,82 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Maintenance";
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Maintenance</h2>
+        <div class="kicker">Track ongoing and completed maintenance tickets.</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- LEFT: current tickets -->
+    <div class="col-lg-8">
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-2">Current Tickets</div>
+            <div class="table-responsive">
+                <table class="table-darkish">
+                    <thead><tr><th>Ticket</th><th>Asset ID</th><th>Issue</th><th>Technician</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td>MT-301</td><td>VEH-002</td><td>Engine light diagnostic</td><td>Sam P.</td><td><span class="pill pill-amber">In Progress</span></td></tr>
+                        <tr><td>MT-302</td><td>DRN-101</td><td>Propeller damage</td><td>Rita K.</td><td><span class="pill pill-blue">Scheduled</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-panel">
+            <div class="fw-semibold mb-2">Completed Tickets</div>
+            <div class="table-responsive">
+                <table class="table-darkish">
+                    <thead><tr><th>Ticket</th><th>Asset ID</th><th>Issue</th><th>Date</th><th>Technician</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td>MT-211</td><td>VEH-001</td><td>Oil change</td><td>Sep 05 2025</td><td>Sam P.</td><td><span class="pill pill-green">Completed</span></td></tr>
+                        <tr><td>MT-210</td><td>CAM-REDK-0034</td><td>Sensor cleaning</td><td>Aug 20 2025</td><td>Rita K.</td><td><span class="pill pill-green">Completed</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: add new -->
+    <div class="col-lg-4">
+        <div class="card-panel">
+            <div class="fw-semibold mb-2">Add Maintenance Record</div>
+            <form id="maintForm" class="vstack gap-2">
+                <div>
+                    <label class="form-label small-label">Asset ID</label>
+                    <input id="mAsset" class="form-control" placeholder="e.g., VEH-002" required />
+                </div>
+                <div>
+                    <label class="form-label small-label">Issue Description</label>
+                    <textarea id="mIssue" class="form-control" rows="2" required></textarea>
+                </div>
+                <div>
+                    <label class="form-label small-label">Technician</label>
+                    <input id="mTech" class="form-control" placeholder="Technician Name" />
+                </div>
+                <div>
+                    <label class="form-label small-label">Status</label>
+                    <select id="mStatus" class="form-select">
+                        <option>Scheduled</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-green w-100 mt-2"><i class="bi bi-plus-lg"></i> Add Record</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('maintForm').addEventListener('submit',e=>{
+          e.preventDefault();
+          const id='MT-'+Math.floor(300+Math.random()*100);
+          alert('Maintenance record '+id+' created (success mock).');
+          e.target.reset();
+        });
+    </script>
 }

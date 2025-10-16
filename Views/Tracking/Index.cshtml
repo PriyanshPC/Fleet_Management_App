@@ -1,5 +1,246 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Tracking";
+    var statuses = new[] { "All", "On Route", "Arrived", "Delayed", "Offline" };
+}
+
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Tracking</h2>
+        <div class="kicker">Live overview of vehicles and active deliveries/pickups.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-secondary" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-panel mb-3">
+    <form class="row g-2 align-items-end" id="trackFilters">
+        <div class="col-md-3">
+            <label class="form-label small-label">Search</label>
+            <input id="q" class="form-control" placeholder="Track ID, driver, asset…" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Status</label>
+            <select id="status" class="form-select">
+                @foreach (var s in statuses)
+                {
+                    <option>@s</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Asset</label>
+            <input id="asset" class="form-control" placeholder="e.g., VEH-001 / DRN-101" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small-label">Driver</label>
+            <input id="driver" class="form-control" placeholder="Driver name" />
+        </div>
+        <div class="col-md-1 d-grid">
+            <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
+        </div>
+    </form>
+</div>
+
+<div class="row g-3">
+    <!-- Map mock -->
+    <div class="col-lg-7">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Live Map (mock)</div>
+                <div class="text-muted" style="font-size:12px;">Replace with real map later</div>
+            </div>
+
+            <!-- Simple SVG map mock with markers -->
+            <div class="map-mock" id="mapMock" aria-label="Map">
+                <svg viewBox="0 0 100 60" preserveAspectRatio="none" style="width:100%; height:320px; display:block;">
+                    <!-- background grid -->
+                    <defs>
+                        <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="0.5" />
+                        </pattern>
+                    </defs>
+                    <rect x="0" y="0" width="100" height="60" fill="url(#grid)" />
+
+                    <!-- routes (sample) -->
+                    <polyline id="route-1" points="5,50 30,40 55,25 80,20" fill="none" stroke="rgba(46,144,255,.7)" stroke-width="1.5" />
+                    <polyline id="route-2" points="10,15 25,22 40,30 70,35 90,45" fill="none" stroke="rgba(245,158,11,.7)" stroke-width="1.5" stroke-dasharray="3 2" />
+
+                    <!-- markers -->
+                    <!-- On Route -->
+                    <circle cx="55" cy="25" r="2.2" fill="#1e6fff" />
+                    <text x="58" y="26" font-size="3" fill="#CFE2FF">R-1031</text>
+                    <!-- Delayed -->
+                    <rect x="69" y="34" width="4.4" height="4.4" fill="#F59E0B" rx="1" />
+                    <text x="74.5" y="37.2" font-size="3" fill="#FFE0A3">R-1029</text>
+                    <!-- Arrived -->
+                    <polygon points="80,20 83,22 80,24 77,22" fill="#22C55E" />
+                    <text x="84" y="22.5" font-size="3" fill="#B7F0C8">R-1030</text>
+                </svg>
+            </div>
+
+            <div class="text-muted mt-2" style="font-size:12px;">
+                Legend: <span class="pill pill-blue">On Route</span> <span class="pill pill-amber">Delayed</span> <span class="pill pill-green">Arrived</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route details / timeline -->
+    <div class="col-lg-5">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Selected Route</div>
+                <span id="selTrack" class="text-muted" style="font-size:12px;">Select a row to view</span>
+            </div>
+
+            <div class="timeline" id="routeTimeline">
+                <div class="text-muted" style="font-size:13px;">No route selected.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live routes table -->
+    <div class="col-12">
+        <div class="card-panel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Live Routes</div>
+                <div class="text-muted" id="resultCount" style="font-size:13px;">—</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-darkish" id="trackTable">
+                    <thead>
+                        <tr>
+                            <th>Track ID</th>
+                            <th>Rental ID</th>
+                            <th>Asset</th>
+                            <th>Driver</th>
+                            <th>Last Ping</th>
+                            <th>ETA</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- injected --></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ---- Mock data (swap to API later) ----
+        const TRACKS = [
+          { id:"T-5501", rental:"R-1031", asset:"VEH-001", driver:"Sam Patel",   last:"10:22", eta:"12:05", status:"On Route", location:"Hwy 401 E • KM 122",
+            timeline:[
+              {t:"09:40", txt:"Departed Depot 1"},
+              {t:"10:05", txt:"Pickup completed (Transit Van #1)"},
+              {t:"10:22", txt:"On route to Filmhouse Studios"}
+            ]},
+          { id:"T-5498", rental:"R-1029", asset:"PPE-055", driver:"Courier A",   last:"10:18", eta:"10:50", status:"Delayed",  location:"Bay St & King St",
+            timeline:[
+              {t:"09:10", txt:"Departed Depot 3"},
+              {t:"09:40", txt:"Traffic congestion reported"},
+              {t:"10:18", txt:"Delay ~15min"}
+            ]},
+          { id:"T-5499", rental:"R-1030", asset:"MIC-004", driver:"Courier B",   last:"10:10", eta:"10:30", status:"Arrived",  location:"Nova Events HQ",
+            timeline:[
+              {t:"09:20", txt:"Departed Depot 2"},
+              {t:"10:05", txt:"Arrived at Nova Events"},
+              {t:"10:10", txt:"Drop-off complete"}
+            ]},
+          { id:"T-5496", rental:"R-1032", asset:"CAM-REDK-0034", driver:"Rita Khan", last:"10:12", eta:"11:45", status:"On Route", location:"DVP S • Exit 7",
+            timeline:[
+              {t:"09:00", txt:"Departed Depot 1"},
+              {t:"09:30", txt:"Pickup (RED Komodo 6K)"},
+              {t:"10:12", txt:"On route to Filmhouse"}
+            ]}
+        ];
+
+        // ---- Utilities ----
+        const $ = s => document.querySelector(s);
+        const tbody = $('#trackTable tbody');
+        function pill(s){
+          const map = { "On Route":"pill pill-blue", "Arrived":"pill pill-green", "Delayed":"pill pill-amber", "Offline":"pill pill-gray" };
+          return `<span class="${map[s]||'pill'}">${s}</span>`;
+        }
+        function render(rows){
+          tbody.innerHTML = rows.map(r => `
+            <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=${r.rental}" data-track="${r.id}">
+              <td>${r.id}</td>
+              <td>#${r.rental}</td>
+              <td>${r.asset}</td>
+              <td>${r.driver}</td>
+              <td>${r.last}</td>
+              <td>${r.eta}</td>
+              <td>${pill(r.status)}</td>
+              <td>${r.location}</td>
+            </tr>
+          `).join('');
+          $('#resultCount').textContent = `${rows.length} route${rows.length===1?'':'s'}`;
+          bindRows();
+        }
+        function bindRows(){
+          document.querySelectorAll('#trackTable tbody tr.row-link').forEach(tr=>{
+            tr.addEventListener('click', e=>{
+              // left click = open details
+              if(e.target.closest('td')) location.href = tr.dataset.href;
+            });
+            tr.addEventListener('mouseenter', ()=>{
+              const id = tr.dataset.track;
+              const r = TRACKS.find(x=>x.id===id);
+              showTimeline(r);
+            });
+            tr.addEventListener('keydown', e=>{
+              if(e.key==='Enter'||e.key===' ') { e.preventDefault(); location.href = tr.dataset.href; }
+            });
+          });
+        }
+        function showTimeline(r){
+          if(!r){ $('#routeTimeline').innerHTML = '<div class="text-muted" style="font-size:13px;">No route selected.</div>'; return; }
+          $('#selTrack').textContent = `${r.id} • #${r.rental} • ${r.asset}`;
+          $('#routeTimeline').innerHTML = r.timeline.map(i => `
+            <div class="tl-row">
+              <div class="tl-dot"></div>
+              <div>
+                <div class="fw-semibold">${i.txt}</div>
+                <div class="text-muted" style="font-size:12px;">${i.t}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // ---- Filters ----
+        function applyFilters(){
+          const q = $('#q').value.trim().toLowerCase();
+          const st = $('#status').value;
+          const a  = $('#asset').value.trim().toUpperCase();
+          const d  = $('#driver').value.trim().toLowerCase();
+
+          const rows = TRACKS.filter(r=>{
+            if(q && !( (r.id+r.rental+r.asset+r.driver+r.location).toLowerCase().includes(q))) return false;
+            if(st!=='All' && r.status!==st) return false;
+            if(a && !r.asset.toUpperCase().includes(a)) return false;
+            if(d && !r.driver.toLowerCase().includes(d)) return false;
+            return true;
+          });
+          render(rows);
+        }
+
+        ['q','status','asset','driver'].forEach(id=>{
+          document.getElementById(id).addEventListener('input', applyFilters);
+          document.getElementById(id).addEventListener('change', applyFilters);
+        });
+        document.getElementById('clearFilters').addEventListener('click', ()=>{
+          ['q','asset','driver'].forEach(i=>document.getElementById(i).value='');
+          document.getElementById('status').value='All';
+          applyFilters();
+        });
+
+        // ---- Init ----
+        render(TRACKS);
+        showTimeline(TRACKS[0]);
+    </script>
 }
