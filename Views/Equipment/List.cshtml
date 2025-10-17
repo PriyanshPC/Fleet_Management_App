@@ -1,9 +1,13 @@
 ﻿@{
+    // Set the page title for the equipment list view
     ViewData["Title"] = "Equipment – List";
+    // Define available equipment categories for filtering
     var categories = new[] { "All", "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
+    // Define possible equipment statuses for filtering
     var statuses = new[] { "All", "Available", "Rented", "Maintenance", "Retired" };
 }
 
+<!-- Page header: displays the equipment section title and description -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Equipment</h2>
@@ -11,6 +15,7 @@
     </div>
 </div>
 
+<!-- Filter form: allows searching and filtering equipment by category, status, and location -->
 <div class="card-panel mb-3">
     <form class="row g-2 align-items-end">
         <div class="col-md-3">
@@ -40,14 +45,17 @@
             <input id="location" class="form-control" placeholder="Site / Depot" />
         </div>
         <div class="col-md-1 d-grid">
+            <!-- Button to clear all filters and reset the form -->
             <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
         </div>
     </form>
 </div>
 
+<!-- Results table: displays filtered equipment list -->
 <div class="card-panel">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-semibold">Results</div>
+        <!-- Shows the number of results found -->
         <div class="text-muted" id="resultCount" style="font-size:13px;">—</div>
     </div>
 
@@ -63,13 +71,14 @@
                     <th class="text-end">Value</th>
                 </tr>
             </thead>
-            <tbody><!-- injected --></tbody>
+            <tbody><!-- Equipment rows are injected by JavaScript --></tbody>
         </table>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        // Static equipment data for demonstration purposes
         const EQUIP = [
           {id:"VEH-001", name:"Transit Van #1", cat:"Vehicles", loc:"Garage A", status:"Available", value:42000},
           {id:"VEH-002", name:"Transit Van #2", cat:"Vehicles", loc:"Garage B", status:"Maintenance", value:41000},
@@ -79,40 +88,74 @@
           {id:"PPE-055", name:"Hazmat Suit Set B", cat:"PPE", loc:"Depot 3", status:"Available", value:150},
           {id:"TLS-014", name:"Thermal Imager", cat:"Tools", loc:"Depot 2", status:"Retired", value:400}
         ];
-        const $=s=>document.querySelector(s);
-        function money(v){return v.toLocaleString(undefined,{style:'currency',currency:'USD'});}
-        function pill(st){
-          const map={Available:'pill pill-green',Rented:'pill pill-blue',Maintenance:'pill pill-amber',Retired:'pill pill-gray'};
-          return `<span class="${map[st]||'pill'}">${st}</span>`;
+
+        // Shorthand for document.querySelector
+        const $ = s => document.querySelector(s);
+
+        // Format a number as USD currency
+        function money(v) {
+            return v.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
         }
-        function render(rows){
-          const tb=$('#equipTable tbody');
-          tb.innerHTML=rows.map(e=>`
-            <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Equipment")?id=${encodeURIComponent(e.id)}">
-              <td>${e.id}</td><td>${e.name}</td><td>${e.cat}</td>
-              <td>${e.loc}</td><td>${pill(e.status)}</td><td class="text-end">${money(e.value)}</td>
-            </tr>`).join('');
-          $('#resultCount').textContent=`${rows.length} result${rows.length==1?'':'s'}`;
-          bindLinks();
+
+        // Return a styled status pill for equipment status
+        function pill(st) {
+            const map = {
+                Available: 'pill pill-green',
+                Rented: 'pill pill-blue',
+                Maintenance: 'pill pill-amber',
+                Retired: 'pill pill-gray'
+            };
+            return `<span class="${map[st] || 'pill'}">${st}</span>`;
         }
-        function bindLinks(){
-          document.querySelectorAll('tr.row-link').forEach(tr=>{
-            tr.onclick=()=>location.href=tr.dataset.href;
-            tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')tr.click();}
-          });
+
+        // Render the equipment table rows based on filtered data
+        function render(rows) {
+            const tb = $('#equipTable tbody');
+            tb.innerHTML = rows.map(e => `
+                <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Equipment")?id=${encodeURIComponent(e.id)}">
+                  <td>${e.id}</td><td>${e.name}</td><td>${e.cat}</td>
+                  <td>${e.loc}</td><td>${pill(e.status)}</td><td class="text-end">${money(e.value)}</td>
+                </tr>`).join('');
+            // Update the result count display
+            $('#resultCount').textContent = `${rows.length} result${rows.length == 1 ? '' : 's'}`;
+            bindLinks();
         }
-        function filter(){
-          const q=$('#q').value.toLowerCase(), c=$('#category').value, s=$('#status').value, l=$('#location').value.toLowerCase();
-          render(EQUIP.filter(e=>{
-            if(q&&!(`${e.name} ${e.id}`.toLowerCase().includes(q)))return false;
-            if(c!=='All'&&e.cat!==c)return false;
-            if(s!=='All'&&e.status!==s)return false;
-            if(l&&!e.loc.toLowerCase().includes(l))return false;
-            return true;
-          }));
+
+        // Enable row click and keyboard navigation for equipment details
+        function bindLinks() {
+            document.querySelectorAll('tr.row-link').forEach(tr => {
+                tr.onclick = () => location.href = tr.dataset.href;
+                tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') tr.click(); }
+            });
         }
-        ['q','category','status','location'].forEach(id=>$( '#'+id).addEventListener('input',filter));
-        $('#clearFilters').onclick=()=>{['q','location'].forEach(i=>$('#'+i).value='');$('#category').value='All';$('#status').value='All';filter();}
+
+        // Filter equipment based on search and selected filters
+        function filter() {
+            const q = $('#q').value.toLowerCase(),
+                  c = $('#category').value,
+                  s = $('#status').value,
+                  l = $('#location').value.toLowerCase();
+            render(EQUIP.filter(e => {
+                if (q && !(`${e.name} ${e.id}`.toLowerCase().includes(q))) return false;
+                if (c !== 'All' && e.cat !== c) return false;
+                if (s !== 'All' && e.status !== s) return false;
+                if (l && !e.loc.toLowerCase().includes(l)) return false;
+                return true;
+            }));
+        }
+
+        // Attach filter event listeners to all filter inputs
+        ['q', 'category', 'status', 'location'].forEach(id => $( '#' + id).addEventListener('input', filter));
+
+        // Clear all filters and reset the form
+        $('#clearFilters').onclick = () => {
+            ['q', 'location'].forEach(i => $('#' + i).value = '');
+            $('#category').value = 'All';
+            $('#status').value = 'All';
+            filter();
+        }
+
+        // Initial render of the equipment table
         render(EQUIP);
     </script>
 }

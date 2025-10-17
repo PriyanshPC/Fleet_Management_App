@@ -1,8 +1,10 @@
 ﻿@{
+    // Set the page title and define available status filters
     ViewData["Title"] = "Tracking";
     var statuses = new[] { "All", "On Route", "Arrived", "Delayed", "Offline" };
 }
 
+<!-- Page header: displays title and description, plus a back button to Dashboard -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Tracking</h2>
@@ -13,7 +15,7 @@
     </div>
 </div>
 
-<!-- Filters -->
+<!-- Filter panel: allows searching and filtering of live routes -->
 <div class="card-panel mb-3">
     <form class="row g-2 align-items-end" id="trackFilters">
         <div class="col-md-3">
@@ -44,7 +46,7 @@
 </div>
 
 <div class="row g-3">
-    <!-- Map mock -->
+    <!-- Map section: displays a mock SVG map with sample routes and markers -->
     <div class="col-lg-7">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -52,10 +54,9 @@
                 <div class="text-muted" style="font-size:12px;">Replace with real map later</div>
             </div>
 
-            <!-- Simple SVG map mock with markers -->
             <div class="map-mock" id="mapMock" aria-label="Map">
                 <svg viewBox="0 0 100 60" preserveAspectRatio="none" style="width:100%; height:320px; display:block;">
-                    <!-- background grid -->
+                    <!-- Draws a light grid background -->
                     <defs>
                         <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
                             <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="0.5" />
@@ -63,30 +64,31 @@
                     </defs>
                     <rect x="0" y="0" width="100" height="60" fill="url(#grid)" />
 
-                    <!-- routes (sample) -->
+                    <!-- Sample route polylines -->
                     <polyline id="route-1" points="5,50 30,40 55,25 80,20" fill="none" stroke="rgba(46,144,255,.7)" stroke-width="1.5" />
                     <polyline id="route-2" points="10,15 25,22 40,30 70,35 90,45" fill="none" stroke="rgba(245,158,11,.7)" stroke-width="1.5" stroke-dasharray="3 2" />
 
-                    <!-- markers -->
-                    <!-- On Route -->
+                    <!-- Route markers with labels for each status -->
+                    <!-- On Route marker -->
                     <circle cx="55" cy="25" r="2.2" fill="#1e6fff" />
                     <text x="58" y="26" font-size="3" fill="#CFE2FF">R-1031</text>
-                    <!-- Delayed -->
+                    <!-- Delayed marker -->
                     <rect x="69" y="34" width="4.4" height="4.4" fill="#F59E0B" rx="1" />
                     <text x="74.5" y="37.2" font-size="3" fill="#FFE0A3">R-1029</text>
-                    <!-- Arrived -->
+                    <!-- Arrived marker -->
                     <polygon points="80,20 83,22 80,24 77,22" fill="#22C55E" />
                     <text x="84" y="22.5" font-size="3" fill="#B7F0C8">R-1030</text>
                 </svg>
             </div>
 
+            <!-- Map legend: explains marker colors and statuses -->
             <div class="text-muted mt-2" style="font-size:12px;">
                 Legend: <span class="pill pill-blue">On Route</span> <span class="pill pill-amber">Delayed</span> <span class="pill pill-green">Arrived</span>
             </div>
         </div>
     </div>
 
-    <!-- Route details / timeline -->
+    <!-- Route details section: displays timeline for selected route -->
     <div class="col-lg-5">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -100,7 +102,7 @@
         </div>
     </div>
 
-    <!-- Live routes table -->
+    <!-- Table section: lists all live routes with details -->
     <div class="col-12">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -122,7 +124,7 @@
                             <th>Location</th>
                         </tr>
                     </thead>
-                    <tbody><!-- injected --></tbody>
+                    <tbody><!-- Table rows are injected by JavaScript --></tbody>
                 </table>
             </div>
         </div>
@@ -131,7 +133,7 @@
 
 @section Scripts {
     <script>
-        // ---- Mock data (swap to API later) ----
+        // ---- Mock data for live tracking (to be replaced with API data) ----
         const TRACKS = [
           { id:"T-5501", rental:"R-1031", asset:"VEH-001", driver:"Sam Patel",   last:"10:22", eta:"12:05", status:"On Route", location:"Hwy 401 E • KM 122",
             timeline:[
@@ -159,13 +161,17 @@
             ]}
         ];
 
-        // ---- Utilities ----
-        const $ = s => document.querySelector(s);
-        const tbody = $('#trackTable tbody');
+        // ---- Utility functions for DOM manipulation and rendering ----
+        const $ = s => document.querySelector(s); // Shortcut for querySelector
+        const tbody = $('#trackTable tbody');     // Table body element
+
+        // Returns a styled status pill for the given status
         function pill(s){
           const map = { "On Route":"pill pill-blue", "Arrived":"pill pill-green", "Delayed":"pill pill-amber", "Offline":"pill pill-gray" };
           return `<span class="${map[s]||'pill'}">${s}</span>`;
         }
+
+        // Renders the table rows for the provided route data
         function render(rows){
           tbody.innerHTML = rows.map(r => `
             <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=${r.rental}" data-track="${r.id}">
@@ -182,22 +188,28 @@
           $('#resultCount').textContent = `${rows.length} route${rows.length===1?'':'s'}`;
           bindRows();
         }
+
+        // Binds click, hover, and keyboard events to each table row
         function bindRows(){
           document.querySelectorAll('#trackTable tbody tr.row-link').forEach(tr=>{
             tr.addEventListener('click', e=>{
-              // left click = open details
+              // Navigate to details page on row click
               if(e.target.closest('td')) location.href = tr.dataset.href;
             });
             tr.addEventListener('mouseenter', ()=>{
+              // Show timeline for hovered route
               const id = tr.dataset.track;
               const r = TRACKS.find(x=>x.id===id);
               showTimeline(r);
             });
             tr.addEventListener('keydown', e=>{
+              // Enable keyboard navigation for accessibility
               if(e.key==='Enter'||e.key===' ') { e.preventDefault(); location.href = tr.dataset.href; }
             });
           });
         }
+
+        // Displays the timeline for the selected route
         function showTimeline(r){
           if(!r){ $('#routeTimeline').innerHTML = '<div class="text-muted" style="font-size:13px;">No route selected.</div>'; return; }
           $('#selTrack').textContent = `${r.id} • #${r.rental} • ${r.asset}`;
@@ -212,13 +224,14 @@
           `).join('');
         }
 
-        // ---- Filters ----
+        // ---- Filtering logic for search and filter controls ----
         function applyFilters(){
           const q = $('#q').value.trim().toLowerCase();
           const st = $('#status').value;
           const a  = $('#asset').value.trim().toUpperCase();
           const d  = $('#driver').value.trim().toLowerCase();
 
+          // Filter routes based on user input
           const rows = TRACKS.filter(r=>{
             if(q && !( (r.id+r.rental+r.asset+r.driver+r.location).toLowerCase().includes(q))) return false;
             if(st!=='All' && r.status!==st) return false;
@@ -229,17 +242,19 @@
           render(rows);
         }
 
+        // Attach event listeners to filter inputs for live filtering
         ['q','status','asset','driver'].forEach(id=>{
           document.getElementById(id).addEventListener('input', applyFilters);
           document.getElementById(id).addEventListener('change', applyFilters);
         });
         document.getElementById('clearFilters').addEventListener('click', ()=>{
+          // Reset all filters to default values
           ['q','asset','driver'].forEach(i=>document.getElementById(i).value='');
           document.getElementById('status').value='All';
           applyFilters();
         });
 
-        // ---- Init ----
+        // ---- Initial rendering of table and timeline on page load ----
         render(TRACKS);
         showTimeline(TRACKS[0]);
     </script>

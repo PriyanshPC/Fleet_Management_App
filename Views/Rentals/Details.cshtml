@@ -3,8 +3,7 @@
 @{
     ViewData["Title"] = "Rental Details";
 
-    // ===== Mock Line Items (until DB is wired) =====
-    // You can replace this with data from your DB/Service later.
+    // Initialize mock rental items for display; replace with database/service data when available
     var items = new List<(string Name, string Category, string Asset, int Qty, decimal RatePerDay, int Days)>
     {
         ("RED Komodo 6K", "Cameras", "CAM-REDK-0034", 1, 120.00m,  (@Model.Due - @Model.Out).Days),
@@ -12,13 +11,16 @@
         ("Prime Lens Set", "Cameras", "LNS-PRM-2210", 1, 55.00m,    (@Model.Due - @Model.Out).Days),
     };
 
+    // Calculate totals and charges for the rental summary
     decimal itemsTotal = items.Sum(i => i.Qty * i.RatePerDay * i.Days);
-    decimal discount = 50.00m;                  // sample
-    decimal tax = Math.Round(itemsTotal * 0.13m, 2); // 13% HST sample
+    decimal discount = 50.00m;                  // Fixed discount for demonstration
+    decimal tax = Math.Round(itemsTotal * 0.13m, 2); // HST at 13%
     decimal grandTotal = itemsTotal - discount + tax;
 
+    // Helper to format currency values
     string Money(decimal n) => n.ToString("C", CultureInfo.CurrentCulture);
 
+    // Helper to assign CSS classes for status pills
     string StatusPill(string s) => s switch
     {
         "On Rent" => "pill pill-blue",
@@ -30,9 +32,11 @@
         _ => "pill"
     };
 
+    // List of possible rental statuses
     var statuses = new[] { "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
 }
 
+<!-- Page header with title and navigation actions -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Rental Details</h2>
@@ -48,16 +52,18 @@
     </div>
 </div>
 
-<!-- ===== HEADER STRIP ===== -->
+<!-- Rental summary header displaying key information -->
 <div class="card-panel mb-3">
     <div class="row g-3 align-items-center">
         <div class="col-lg-4">
+            <!-- Rental ID display -->
             <div class="d-flex flex-column">
                 <div class="text-muted" style="font-size:12px;">Rental ID</div>
                 <div class="fs-5 fw-semibold">#@Model.Id</div>
             </div>
         </div>
         <div class="col-lg-4">
+            <!-- Client and category information -->
             <div class="d-flex flex-column">
                 <div class="text-muted" style="font-size:12px;">Client</div>
                 <div class="fw-semibold">@Model.Client</div>
@@ -65,6 +71,7 @@
             </div>
         </div>
         <div class="col-lg-4">
+            <!-- Status selection and action buttons -->
             <div class="d-flex gap-2 justify-content-lg-end flex-wrap">
                 <div class="d-flex flex-column">
                     <label class="small-label">Status</label>
@@ -88,10 +95,10 @@
 </div>
 
 <div class="row g-3">
-    <!-- ===== LEFT COLUMN ===== -->
+    <!-- Main content area: left column -->
     <div class="col-lg-8">
 
-        <!-- Items -->
+        <!-- Rental items table -->
         <div class="card-panel mb-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="fw-semibold">Items</div>
@@ -136,7 +143,7 @@
             </div>
         </div>
 
-        <!-- Notes -->
+        <!-- Rental notes section -->
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="fw-semibold">Notes</div>
@@ -150,10 +157,10 @@
 
     </div>
 
-    <!-- ===== RIGHT COLUMN ===== -->
+    <!-- Sidebar: right column -->
     <div class="col-lg-4">
 
-        <!-- Schedule -->
+        <!-- Rental schedule details -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Schedule</div>
             <div class="d-flex justify-content-between"><span class="text-muted">Date Out</span><span>@Model.Out.ToString("MMM dd, yyyy")</span></div>
@@ -162,7 +169,7 @@
             <div class="d-flex justify-content-between"><span class="text-muted">Last Updated</span><span>@DateTime.Now.ToString("MMM dd, yyyy • HH:mm")</span></div>
         </div>
 
-        <!-- Charges -->
+        <!-- Charges summary for the rental -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Charges</div>
             <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span>@Money(itemsTotal)</span></div>
@@ -176,7 +183,7 @@
             </a>
         </div>
 
-        <!-- Activity -->
+        <!-- Activity timeline showing rental history -->
         <div class="card-panel">
             <div class="fw-semibold mb-2">Activity</div>
             <div class="timeline">
@@ -211,7 +218,7 @@
 
 @section Scripts {
     <script>
-        // UI-only actions for now; later, post to controller
+        // Handles status change actions and updates the activity timeline in the UI
         const statusSelect = document.getElementById('statusSelect');
         const activity = document.querySelector('.timeline');
 
@@ -225,6 +232,7 @@
           prependActivity('Status set to <span class="pill pill-darkred">Cancelled</span>');
         });
 
+        // Prepends a new activity entry to the timeline
         function prependActivity(html){
           const row = document.createElement('div');
           row.className = 'tl-row';

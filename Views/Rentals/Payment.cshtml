@@ -1,9 +1,11 @@
 ﻿@{
-    // Optional rental id, only for display
+    // Retrieve optional rental ID from query string for display purposes
     var rid = (string?)Context.Request.Query["id"];
+    // Set the page title, including rental ID if available
     ViewData["Title"] = rid is not null ? $"Payment • #{rid}" : "Payment";
 }
 
+<!-- Page header with title and context-specific kicker -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Payment</h2>
@@ -19,30 +21,32 @@
         </div>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <!-- Always go back to the list -->
+        <!-- Navigation button to return to the rental list -->
         <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
             <i class="bi bi-arrow-left"></i> Back to List
         </a>
     </div>
 </div>
 
-
 <div class="row g-3">
 
-    <!-- LEFT: Payment form -->
+    <!-- LEFT COLUMN: Payment entry form -->
     <div class="col-lg-7">
         <div class="card-panel">
             <div class="fw-semibold mb-2">Record Payment</div>
 
             <div class="row g-3">
+                <!-- Display amount due (read-only) -->
                 <div class="col-md-4">
                     <label class="form-label small-label">Amount Due</label>
                     <input id="amountDue" class="form-control text-end" value="$0.00" disabled />
                 </div>
+                <!-- Input for payment amount -->
                 <div class="col-md-4">
                     <label class="form-label small-label">Payment Amount</label>
                     <input id="amountPay" type="number" min="0" step="0.01" class="form-control text-end" value="0.00" />
                 </div>
+                <!-- Select payment method -->
                 <div class="col-md-4">
                     <label class="form-label small-label">Method</label>
                     <select id="method" class="form-select">
@@ -53,7 +57,7 @@
                     </select>
                 </div>
 
-                <!-- Method-specific fields -->
+                <!-- Card payment fields (shown if method is Card or Split) -->
                 <div class="col-md-6 method-card">
                     <label class="form-label small-label">Card Number</label>
                     <input id="cardNum" class="form-control" placeholder="**** **** **** 1234" />
@@ -67,21 +71,25 @@
                     <input id="cardCvv" class="form-control" placeholder="***" />
                 </div>
 
+                <!-- Online payment field (shown if method is Online or Split) -->
                 <div class="col-md-6 method-online d-none">
                     <label class="form-label small-label">Reference</label>
                     <input id="onlineRef" class="form-control" placeholder="Txn / UTR / Ref #" />
                 </div>
 
+                <!-- Cash payment field (shown if method is Cash) -->
                 <div class="col-md-6 method-cash d-none">
                     <label class="form-label small-label">Cash Notes</label>
                     <input id="cashNotes" class="form-control" placeholder="Till drawer / Clerk ID ..." />
                 </div>
 
+                <!-- General notes for the payment -->
                 <div class="col-12">
                     <label class="form-label small-label">Notes</label>
                     <textarea id="notes" class="form-control" rows="2" placeholder="Any extra info for this payment..."></textarea>
                 </div>
 
+                <!-- Button to record the payment -->
                 <div class="col-12 d-flex justify-content-end gap-2">
                     <button type="button" id="btnRecord" class="btn btn-green d-inline-flex align-items-center gap-2">
                         <i class="bi bi-cash-coin"></i> Record Payment
@@ -91,11 +99,12 @@
         </div>
     </div>
 
-    <!-- RIGHT: Summary + Receipts -->
+    <!-- RIGHT COLUMN: Charges summary and receipts table -->
     <div class="col-lg-5">
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Charges Summary</div>
 
+            <!-- Display breakdown of charges and payment status -->
             <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span id="sumItems">$0.00</span></div>
             <div class="d-flex justify-content-between"><span class="text-muted">Discount</span><span id="sumDiscount">-$0.00</span></div>
             <div class="d-flex justify-content-between"><span class="text-muted">Tax</span><span id="sumTax">$0.00</span></div>
@@ -108,9 +117,11 @@
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="fw-semibold">Receipts</div>
+                <!-- Button to mark the rental as fully paid -->
                 <button type="button" id="btnMarkPaid" class="btn btn-secondary btn-sm">Mark as Paid</button>
             </div>
             <div class="table-responsive">
+                <!-- Table listing all payment receipts for this rental -->
                 <table class="table-darkish" id="receiptsTable">
                     <thead>
                         <tr>
@@ -122,7 +133,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- rows injected -->
+                        <!-- Receipt rows are injected dynamically -->
                     </tbody>
                 </table>
             </div>
@@ -133,16 +144,19 @@
 
 @section Scripts {
     <script>
-        /* ---------- Mock pull from Details (for demo) ----------
-           In real app, populate these from server for rental @rid */
-        let itemsTotal  = 820.00;  // sample
-        let discount    = 50.00;
-        let tax         = Math.round((itemsTotal - discount) * 0.13 * 100)/100;
-        let grand       = itemsTotal - discount + tax;
-        let paid        = 0.00;
+        /* ---------- Mock data for demo purposes ----------
+           In a real application, these values would be loaded from the server for rental @rid */
+        let itemsTotal  = 820.00;  // Example items total
+        let discount    = 50.00;   // Example discount
+        let tax         = Math.round((itemsTotal - discount) * 0.13 * 100)/100; // 13% tax calculation
+        let grand       = itemsTotal - discount + tax; // Grand total after discount and tax
+        let paid        = 0.00;     // Amount paid so far
 
+        // Helper for DOM selection and currency formatting
         const $ = sel => document.querySelector(sel);
         function money(n){ return n.toLocaleString(undefined,{style:'currency',currency:'USD'}); }
+
+        // Update all summary fields in the UI
         function refreshSummary(){
           $('#sumItems').textContent   = money(itemsTotal);
           $('#sumDiscount').textContent= '-' + money(discount);
@@ -154,8 +168,9 @@
         }
         refreshSummary();
 
-        /* ---------- Receipts table ---------- */
+        /* ---------- Receipts table management ---------- */
         let rcptNo = 0;
+        // Add a new receipt row to the receipts table
         function addReceiptRow({date, method, amount, ref}){
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -168,12 +183,14 @@
           $('#receiptsTable tbody').prepend(tr);
         }
 
-        /* ---------- Method-specific fields ---------- */
+        /* ---------- Show/hide payment method fields based on selection ---------- */
         function updateMethodFields(){
           const m = $('#method').value;
+          // Hide all method-specific fields
           document.querySelectorAll('.method-card').forEach(e=>e.classList.add('d-none'));
           document.querySelectorAll('.method-cash').forEach(e=>e.classList.add('d-none'));
           document.querySelectorAll('.method-online').forEach(e=>e.classList.add('d-none'));
+          // Show relevant fields for selected method
           if(m==='Card')  document.querySelectorAll('.method-card').forEach(e=>e.classList.remove('d-none'));
           if(m==='Cash')  document.querySelectorAll('.method-cash').forEach(e=>e.classList.remove('d-none'));
           if(m==='Online')document.querySelectorAll('.method-online').forEach(e=>e.classList.remove('d-none'));
@@ -182,13 +199,14 @@
         $('#method').addEventListener('change', updateMethodFields);
         updateMethodFields();
 
-        /* ---------- Record Payment (front-end only) ---------- */
+        /* ---------- Record a payment and update summary/receipts ---------- */
         $('#btnRecord').addEventListener('click', ()=>{
           const amt = Number($('#amountPay').value || 0);
           if(amt <= 0){ alert('Enter a payment amount.'); return; }
           const due = Math.max(0, grand - paid);
           if(amt > due){ if(!confirm('Amount exceeds balance due. Record anyway?')) return; }
 
+          // Determine reference based on payment method
           const method = $('#method').value;
           const ref = (method==='Card') ? ($('#cardNum').value.slice(-4) ? '****'+$('#cardNum').value.slice(-4) : '')
                     : (method==='Online') ? $('#onlineRef').value
@@ -200,7 +218,7 @@
           $('#amountPay').value = '0.00';
         });
 
-        /* ---------- Mark fully paid ---------- */
+        /* ---------- Mark the rental as fully paid ---------- */
         $('#btnMarkPaid').addEventListener('click', ()=>{
           const due = Math.max(0, grand - paid);
           if(due > 0){

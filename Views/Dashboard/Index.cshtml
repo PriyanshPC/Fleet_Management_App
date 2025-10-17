@@ -1,13 +1,16 @@
 ﻿@{
+    // Set the page title for the dashboard view
     ViewData["Title"] = "Dashboard";
 }
 
+<!-- Page header: displays dashboard title and quick action button -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Dashboard</h2>
         <div class="kicker">Overview of fleet, rentals, and maintenance.</div>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <!-- Button to create a new rental, links to Rentals/New -->
         <a class="btn btn-green d-inline-flex align-items-center gap-2"
            asp-controller="Rentals" asp-action="New">
             <i class="bi bi-plus-lg"></i> New Rental
@@ -15,8 +18,9 @@
     </div>
 </div>
 
-<!-- KPI SECTION -->
+<!-- KPI SECTION: shows summary statistics for fleet management -->
 <div class="stat-grid mb-3">
+    <!-- Total equipment in the fleet -->
     <div class="stat-card">
         <div class="stat-eyebrow">Total Equipment</div>
         <div class="mt-1 d-flex align-items-center">
@@ -26,6 +30,7 @@
         <div class="text-muted mt-2" style="font-size:13px;">Across 9 categories</div>
     </div>
 
+    <!-- Number of active rentals -->
     <div class="stat-card">
         <div class="stat-eyebrow">Active Rentals</div>
         <div class="mt-1 d-flex align-items-center">
@@ -35,6 +40,7 @@
         <div class="text-muted mt-2" style="font-size:13px;">5 due this week</div>
     </div>
 
+    <!-- Pending maintenance items -->
     <div class="stat-card">
         <div class="stat-eyebrow">Pending Maintenance</div>
         <div class="mt-1 d-flex align-items-center">
@@ -44,6 +50,7 @@
         <div class="text-muted mt-2" style="font-size:13px;">2 urgent items</div>
     </div>
 
+    <!-- Fleet availability stats -->
     <div class="stat-card">
         <div class="stat-eyebrow">Fleet Available</div>
         <div class="mt-1 d-flex align-items-center">
@@ -54,8 +61,9 @@
     </div>
 </div>
 
-<!-- CHARTS + TABLE -->
+<!-- CHARTS + TABLE: visualizations and active rentals list -->
 <div class="row g-3">
+    <!-- Bar chart: equipment availability by category -->
     <div class="col-lg-6">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -68,6 +76,7 @@
         </div>
     </div>
 
+    <!-- Doughnut chart: maintenance status overview -->
     <div class="col-lg-6">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -80,11 +89,12 @@
         </div>
     </div>
 
-    <!-- ACTIVE RENTALS TABLE -->
+    <!-- ACTIVE RENTALS TABLE: lists current rentals with status -->
     <div class="col-12">
         <div class="card-panel">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="fw-semibold">Active Rentals</div>
+                <!-- Link to view all rentals -->
                 <a class="link-muted" asp-controller="Rentals" asp-action="List" style="font-size:13px;">View all</a>
             </div>
 
@@ -101,6 +111,7 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- Each row represents an active rental; clicking navigates to details -->
                         <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=R-1029">
                             <td>#R-1029</td>
                             <td>Starlight Media</td>
@@ -163,8 +174,10 @@
 </div>
 
 @section Scripts {
+    <!-- Chart.js library for rendering dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
+        // Render bar chart for equipment availability by category
         const ctxA = document.getElementById('chartAvailability');
         new Chart(ctxA, {
             type: 'bar',
@@ -188,6 +201,7 @@
             }
         });
 
+        // Render doughnut chart for maintenance status
         const ctxM = document.getElementById('chartMaintenance');
         new Chart(ctxM, {
             type: 'doughnut',
@@ -207,7 +221,7 @@
             }
         });
 
-        // Activate click-through for any row with data-href
+        // Enable row click and keyboard navigation for rental details
         (function attachRowLinks(){
           document.querySelectorAll('tr.row-link[data-href]').forEach(tr => {
             tr.addEventListener('click', () => location.href = tr.dataset.href);

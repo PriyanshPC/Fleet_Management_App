@@ -1,7 +1,9 @@
 ﻿@{
+    // Set the page title for the maintenance view
     ViewData["Title"] = "Maintenance";
 }
 
+<!-- Page header: displays maintenance section title and description -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Maintenance</h2>
@@ -10,39 +12,87 @@
 </div>
 
 <div class="row g-3">
-    <!-- LEFT: current tickets -->
+    <!-- LEFT COLUMN: lists current and completed maintenance tickets -->
     <div class="col-lg-8">
+        <!-- Current Tickets Card: shows tickets that are in progress or scheduled -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Current Tickets</div>
             <div class="table-responsive">
                 <table class="table-darkish">
-                    <thead><tr><th>Ticket</th><th>Asset ID</th><th>Issue</th><th>Technician</th><th>Status</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Asset ID</th>
+                            <th>Issue</th>
+                            <th>Technician</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>MT-301</td><td>VEH-002</td><td>Engine light diagnostic</td><td>Sam P.</td><td><span class="pill pill-amber">In Progress</span></td></tr>
-                        <tr><td>MT-302</td><td>DRN-101</td><td>Propeller damage</td><td>Rita K.</td><td><span class="pill pill-blue">Scheduled</span></td></tr>
+                        <!-- Example current maintenance tickets -->
+                        <tr>
+                            <td>MT-301</td>
+                            <td>VEH-002</td>
+                            <td>Engine light diagnostic</td>
+                            <td>Sam P.</td>
+                            <td><span class="pill pill-amber">In Progress</span></td>
+                        </tr>
+                        <tr>
+                            <td>MT-302</td>
+                            <td>DRN-101</td>
+                            <td>Propeller damage</td>
+                            <td>Rita K.</td>
+                            <td><span class="pill pill-blue">Scheduled</span></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Completed Tickets Card: shows tickets that have been resolved -->
         <div class="card-panel">
             <div class="fw-semibold mb-2">Completed Tickets</div>
             <div class="table-responsive">
                 <table class="table-darkish">
-                    <thead><tr><th>Ticket</th><th>Asset ID</th><th>Issue</th><th>Date</th><th>Technician</th><th>Status</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Asset ID</th>
+                            <th>Issue</th>
+                            <th>Date</th>
+                            <th>Technician</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>MT-211</td><td>VEH-001</td><td>Oil change</td><td>Sep 05 2025</td><td>Sam P.</td><td><span class="pill pill-green">Completed</span></td></tr>
-                        <tr><td>MT-210</td><td>CAM-REDK-0034</td><td>Sensor cleaning</td><td>Aug 20 2025</td><td>Rita K.</td><td><span class="pill pill-green">Completed</span></td></tr>
+                        <!-- Example completed maintenance tickets -->
+                        <tr>
+                            <td>MT-211</td>
+                            <td>VEH-001</td>
+                            <td>Oil change</td>
+                            <td>Sep 05 2025</td>
+                            <td>Sam P.</td>
+                            <td><span class="pill pill-green">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>MT-210</td>
+                            <td>CAM-REDK-0034</td>
+                            <td>Sensor cleaning</td>
+                            <td>Aug 20 2025</td>
+                            <td>Rita K.</td>
+                            <td><span class="pill pill-green">Completed</span></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT: add new -->
+    <!-- RIGHT COLUMN: form to add a new maintenance record -->
     <div class="col-lg-4">
         <div class="card-panel">
             <div class="fw-semibold mb-2">Add Maintenance Record</div>
+            <!-- Maintenance record form: allows users to submit new tickets -->
             <form id="maintForm" class="vstack gap-2">
                 <div>
                     <label class="form-label small-label">Asset ID</label>
@@ -64,6 +114,7 @@
                         <option>Completed</option>
                     </select>
                 </div>
+                <!-- Submit button for adding a new maintenance record -->
                 <button type="submit" class="btn btn-green w-100 mt-2"><i class="bi bi-plus-lg"></i> Add Record</button>
             </form>
         </div>
@@ -72,10 +123,14 @@
 
 @section Scripts {
     <script>
-        document.getElementById('maintForm').addEventListener('submit',e=>{
+        // Handle form submission for adding a maintenance record (mock implementation)
+        document.getElementById('maintForm').addEventListener('submit', e => {
           e.preventDefault();
-          const id='MT-'+Math.floor(300+Math.random()*100);
-          alert('Maintenance record '+id+' created (success mock).');
+          // Generate a mock ticket ID
+          const id = 'MT-' + Math.floor(300 + Math.random() * 100);
+          // Show a success message (mock only, does not persist data)
+          alert('Maintenance record ' + id + ' created (success mock).');
+          // Reset the form fields
           e.target.reset();
         });
     </script>

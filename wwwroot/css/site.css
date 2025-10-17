@@ -1,30 +1,36 @@
-/* wwwroot/css/site.css */
+/* site.css - Main stylesheet for Razor Pages Fleet Management App
+   Theme: Dark, modern, dashboard-oriented
+   Purpose: Defines global variables, layout, component styles, and utility classes
+*/
 
-/* Google Font */
+/* === Import Google Font: Space Grotesk for modern, readable UI === */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap');
 
+/* === CSS Custom Properties (Variables) for consistent theming === */
 :root {
-    --bg: #080D15; /* Darker body background */
-    --surface: #111A25; /* navbar / cards */
-    --border: #2d2d3a;
-    --text: #ffffff;
-    --muted: #a0a0b0;
-    --primary: #1e6fff;
-    --primary-hover: #2a7cff;
-    --primary-active: #1656cc;
-    --secondary: #2c2c36;
-    --secondary-hover: #383845;
-    --secondary-active: #23232c;
-    --danger: #d72638;
-    --danger-hover: #e03545;
-    --danger-active: #b81f2e;
-    --focus: #2e90ff;
-    --shadow: 0 2px 8px rgba(0, 0, 0, .4);
-    --radius: 8px;
-    --card-radius: 12px;
+    --bg: #080D15; /* App background: deep navy for dark mode */
+    --surface: #111A25; /* Surface elements: navbars, cards, panels */
+    --border: #2d2d3a; /* Standard border color for separation */
+    --text: #ffffff; /* Primary text color for high contrast */
+    --muted: #a0a0b0; /* Muted text for secondary info */
+    --primary: #1e6fff; /* Main accent color for primary actions */
+    --primary-hover: #2a7cff; /* Primary button hover state */
+    --primary-active: #1656cc; /* Primary button active state */
+    --secondary: #2c2c36; /* Secondary button background */
+    --secondary-hover: #383845; /* Secondary button hover */
+    --secondary-active: #23232c; /* Secondary button active */
+    --danger: #d72638; /* Error/destructive actions */
+    --danger-hover: #e03545; /* Danger button hover */
+    --danger-active: #b81f2e; /* Danger button active */
+    --focus: #2e90ff; /* Focus ring for accessibility */
+    --shadow: 0 2px 8px rgba(0, 0, 0, .4); /* Standard shadow for elevation */
+    --radius: 8px; /* Default border radius for rounded corners */
+    --card-radius: 12px; /* Card-specific border radius */
 }
 
-/* Page background slightly darker navbar */
+/* === Base Page Styles ===
+   Sets up dark background, text color, and font for the entire app
+*/
 body {
     background-color: var(--bg);
     color: var(--text);
@@ -33,14 +39,16 @@ body {
     min-height: 100vh;
 }
 
+/* Universal box-sizing for predictable layout sizing */
 * {
     box-sizing: border-box;
 }
 
-
-/* Inputs (dark) */
+/* === Form Controls ===
+   Styles for input fields and dropdowns in dark mode
+*/
 .form-control, .form-select {
-    background-color: #121217;
+    background-color: #121217; /* Slightly lighter than body for contrast */
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -48,16 +56,18 @@ body {
 }
 
     .form-control::placeholder {
-        color: #666A75;
+        color: #666A75; /* Subtle placeholder text */
     }
 
     .form-control:focus, .form-select:focus {
-        border-color: var(--focus);
+        border-color: var(--focus); /* Highlight on focus for accessibility */
         outline: 2px solid var(--focus);
         box-shadow: none;
     }
 
-/* Buttons */
+/* === Button Styles ===
+   Primary, secondary, and danger buttons for main actions
+*/
 .btn-primary {
     background: var(--primary);
     border-color: var(--primary);
@@ -105,7 +115,9 @@ body {
         border-color: var(--danger-hover);
     }
 
-/* Helper */
+/* === Card Component ===
+   Used for dashboard panels and content containers
+*/
 .card-dark {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -113,8 +125,9 @@ body {
     box-shadow: var(--shadow);
 }
 
+/* === Utility Classes === */
 .text-muted {
-    color: var(--muted) !important;
+    color: var(--muted) !important; /* For secondary, less prominent text */
 }
 
 a.link-muted {
@@ -126,15 +139,21 @@ a.link-muted {
         color: #fff;
         text-decoration: underline;
     }
-/* ===== Dashboard components ===== */
+
+/* === Dashboard Grid Layout ===
+   Responsive grid for dashboard statistic cards
+*/
 .stat-grid {
     display: grid;
-    grid-template-columns: repeat(12,1fr);
+    grid-template-columns: repeat(12,1fr); /* 12-column grid for flexibility */
     gap: 16px;
 }
 
+/* === Statistic Card ===
+   Card for displaying key metrics on dashboard
+*/
 .stat-card {
-    grid-column: span 3; /* 4-up on desktop */
+    grid-column: span 3; /* 4 cards per row on desktop */
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -142,19 +161,20 @@ a.link-muted {
     box-shadow: 0 2px 10px rgba(0,0,0,.25);
 }
 
+/* Responsive adjustments for stat cards */
 @media (max-width: 992px) {
     .stat-card {
-        grid-column: span 6;
+        grid-column: span 6; /* 2 cards per row on tablets */
     }
 }
-/* 2-up */
+
 @media (max-width: 576px) {
     .stat-card {
-        grid-column: span 12;
+        grid-column: span 12; /* 1 card per row on mobile */
     }
 }
-/* 1-up */
 
+/* === Statistic Card Elements === */
 .stat-eyebrow {
     color: var(--muted);
     font-size: 12px;
@@ -175,18 +195,22 @@ a.link-muted {
     margin-left: 8px;
 }
 
+/* Delta indicators for up/down trends */
 .delta-up {
-    background: rgba(34,197,94,.18);
+    background: rgba(34,197,94,.18); /* Green for positive change */
     color: #B7F0C8;
     border: 1px solid rgba(34,197,94,.35);
 }
 
 .delta-down {
-    background: rgba(231,76,60,.18);
+    background: rgba(231,76,60,.18); /* Red for negative change */
     color: #FFC1C1;
     border: 1px solid rgba(231,76,60,.35);
 }
 
+/* === Generic Card Panel ===
+   Used for various dashboard and page sections
+*/
 .card-panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -195,9 +219,11 @@ a.link-muted {
     box-shadow: 0 2px 10px rgba(0,0,0,.25);
 }
 
-/* Table (dark-friendly) */
+/* === Table Styles for Dark Theme ===
+   Custom table for dashboard and data views
+*/
 .table-darkish {
-    --row-border: rgba(255,255,255,.06);
+    --row-border: rgba(255,255,255,.06); /* Subtle row separation */
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -219,10 +245,12 @@ a.link-muted {
     }
 
     .table-darkish tbody tr:hover {
-        background: rgba(255,255,255,.03);
+        background: rgba(255,255,255,.03); /* Row highlight on hover */
     }
 
-/* Status pills */
+/* === Status Pills ===
+   Colored labels for status indicators (e.g., rental status, alerts)
+*/
 .pill {
     font-size: 12px;
     padding: 4px 10px;
@@ -231,30 +259,32 @@ a.link-muted {
 }
 
 .pill-green {
-    background: rgba(34,197,94,.18);
+    background: rgba(34,197,94,.18); /* Success/active status */
     color: #B7F0C8;
     border-color: rgba(34,197,94,.35);
 }
 
 .pill-amber {
-    background: rgba(245,158,11,.18);
+    background: rgba(245,158,11,.18); /* Warning status */
     color: #FFE0A3;
     border-color: rgba(245,158,11,.35);
 }
 
 .pill-blue {
-    background: rgba(46,144,255,.18);
+    background: rgba(46,144,255,.18); /* Info status */
     color: #CFE2FF;
     border-color: rgba(46,144,255,.35);
 }
 
 .pill-red {
-    background: rgba(231,76,60,.18);
+    background: rgba(231,76,60,.18); /* Error/critical status */
     color: #FFC1C1;
     border-color: rgba(231,76,60,.35);
 }
 
-/* Page header row */
+/* === Page Header Row ===
+   Flex container for page titles and actions
+*/
 .page-head {
     display: flex;
     align-items: center;
@@ -263,12 +293,15 @@ a.link-muted {
     margin-bottom: 16px;
 }
 
+/* Subheading for page sections */
 .kicker {
     color: var(--muted);
     font-size: 14px;
 }
 
-/* CTA (New Rental) style to match theme buttons but outlined) */
+/* === Ghost Button ===
+   Outlined button for secondary/CTA actions (e.g., "New Rental")
+*/
 .btn-ghost {
     background: transparent;
     border: 1px solid #fff;
@@ -282,12 +315,16 @@ a.link-muted {
         background: rgba(255,255,255,.06);
     }
 
-/* Chart containers */
+/* === Chart Container ===
+   Used for embedding charts in dashboard panels
+*/
 .chart-wrap {
     height: 280px;
 }
 
-/* ===== GREEN BUTTON (New Rental) ===== */
+/* === Green Button ===
+   Special CTA button for actions like "New Rental"
+*/
 .btn-green {
     background: rgba(34, 197, 94, 0.25);
     border: 1px solid rgba(34, 197, 94, 0.5);
@@ -308,19 +345,24 @@ a.link-muted {
         background: rgba(34, 197, 94, 0.6);
     }
 
-/* ===== Additional rental status pills ===== */
+/* === Additional Status Pills ===
+   For custom rental statuses and alerts
+*/
 .pill-gray {
-    background: rgba(120, 120, 120, 0.15);
+    background: rgba(120, 120, 120, 0.15); /* Neutral status */
     color: #bcbcbc;
     border: 1px solid rgba(150, 150, 150, 0.25);
 }
 
 .pill-darkred {
-    background: rgba(255, 72, 66, 0.18);
+    background: rgba(255, 72, 66, 0.18); /* Severe/critical status */
     color: #ffb8b8;
     border: 1px solid rgba(255, 72, 66, 0.35);
 }
-/* toolbar label */
+
+/* === Toolbar Label ===
+   Small label for toolbar or filter controls
+*/
 .small-label {
     font-size: 12px;
     font-weight: 600;
@@ -328,16 +370,9 @@ a.link-muted {
     letter-spacing: .2px;
 }
 
-/* card container (already defined for Dashboard) */
-.card-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.25);
-}
-
-/* Timeline */
+/* === Timeline Component ===
+   Used for activity logs, rental history, etc.
+*/
 .timeline {
     display: flex;
     flex-direction: column;
@@ -354,20 +389,13 @@ a.link-muted {
     width: 10px;
     height: 10px;
     border-radius: 999px;
-    background: #4c9aff;
+    background: #4c9aff; /* Timeline marker */
     margin-top: 6px;
 }
 
-/* Small labels (already introduced) */
-.small-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: .2px;
-}
-
-
-/* Clickable table rows */
+/* === Clickable Table Rows ===
+   Makes table rows interactive for navigation
+*/
 .table-darkish tbody tr.row-link {
     cursor: pointer;
     transition: background .12s ease;
@@ -382,24 +410,18 @@ a.link-muted {
         outline-offset: -2px;
     }
 
-/* Hover state for clickable rows (already used elsewhere) */
-.table-darkish tbody tr.row-link {
-    cursor: pointer;
-    transition: background .12s ease;
-}
-
-    .table-darkish tbody tr.row-link:hover {
-        background: rgba(255,255,255,.05);
-    }
-
-/* Quick form spacing fix for maintenance right column */
+/* === Maintenance Form Adjustments ===
+   Quick fix for form control spacing in maintenance sidebar
+*/
 #maintForm .form-control,
 #maintForm .form-select {
     font-size: 14px;
     padding: 6px 8px;
 }
 
-/* Tracking map mock */
+/* === Tracking Map Mock ===
+   Placeholder style for map component in dashboard
+*/
 .map-mock {
     background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
     border: 1px solid var(--border);

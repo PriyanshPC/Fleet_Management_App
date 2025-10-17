@@ -1,10 +1,14 @@
 ﻿@model IEnumerable<Fleet_Management_App.Models.RentalListItem>
 @{
+    // Set the page title for display in the browser and header
     ViewData["Title"] = "Rentals – List";
+
+    // Define available status and category filter options
     var statuses = new[] { "All", "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
     var categories = new[] { "All", "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
 }
 
+<!-- Page header with title and action button for creating a new rental -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Rentals</h2>
@@ -18,7 +22,7 @@
     </div>
 </div>
 
-<!-- Filters toolbar -->
+<!-- Filter toolbar for searching and narrowing down rental results -->
 <div class="card-panel mb-3">
     <form id="filterForm" class="row g-2 align-items-end">
         <div class="col-md-3">
@@ -57,10 +61,11 @@
     </form>
 </div>
 
-<!-- Results -->
+<!-- Rental results table displaying filtered rental records -->
 <div class="card-panel">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-semibold">Results</div>
+        <!-- Display the count of currently visible results -->
         <div class="text-muted" id="resultCount" style="font-size:13px;">@Model.Count() results</div>
     </div>
 
@@ -81,6 +86,7 @@
             <tbody>
                 @foreach (var r in Model)
                 {
+                    // Render each rental as a clickable row with details
                     <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=@r.Id">
                         <td>@($"#{r.Id}")</td>
                         <td>@r.Client</td>
@@ -90,6 +96,7 @@
                         <td>@r.Due.ToString("MMM dd")</td>
                         <td>
                             @{
+                                // Assign a CSS class to the status pill based on rental status
                                 var css = r.Status switch
                                 {
                                     "On Rent" => "pill pill-blue",
@@ -113,7 +120,7 @@
 
 @section Scripts {
     <script>
-        // Clickable table rows (and keyboard accessible)
+        // Make table rows clickable and keyboard accessible for navigation to rental details
         (function attachRowLinks(){
           document.querySelectorAll('#rentalsTable tbody tr.row-link[data-href]').forEach(tr => {
             tr.addEventListener('click', () => location.href = tr.dataset.href);
@@ -123,7 +130,7 @@
           });
         })();
 
-        // Optional client-side filtering: hide/show rows (no data loss)
+        // Apply client-side filters to show/hide rental rows based on filter criteria
         function applyFilters(){
           const q = document.getElementById('q').value.trim().toLowerCase();
           const s = document.getElementById('status').value;
@@ -142,12 +149,13 @@
             const dueTxt  = tds[5].textContent.trim();
             const status  = tds[6].textContent.trim();
 
+            // Combine searchable fields for text search
             const blob = (idTxt + " " + client + " " + items);
             if (q && !blob.includes(q)) { tr.style.display = "none"; return; }
             if (s !== "All" && status !== s) { tr.style.display = "none"; return; }
             if (c !== "All" && cat !== c) { tr.style.display = "none"; return; }
 
-            // date check (parse "Oct 12")
+            // Filter by date range if specified
             const parseShort = (t) => new Date(`${t} ${new Date().getFullYear()}`);
             const out = parseShort(outTxt), due = parseShort(dueTxt);
             if (from && out < from) { tr.style.display = "none"; return; }
@@ -155,9 +163,11 @@
 
             tr.style.display = ""; visible++;
           });
+          // Update the result count display
           document.getElementById('resultCount').textContent = `${visible} result${visible===1?'':'s'}`;
         }
 
+        // Attach filter logic to filter inputs and clear button
         ['q','status','category','from','to'].forEach(id=>{
           document.getElementById(id).addEventListener('input', applyFilters);
           document.getElementById(id).addEventListener('change', applyFilters);

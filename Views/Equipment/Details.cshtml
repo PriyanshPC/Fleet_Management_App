@@ -1,22 +1,27 @@
 ﻿@{
+    // Get the equipment ID from the query string, default to "VEH-001" if not provided
     var id = (string?)Context.Request.Query["id"] ?? "VEH-001";
+    // Set the page title to include the equipment ID
     ViewData["Title"] = $"Equipment Details • {id}";
 }
 
+<!-- Page header: shows title, description, and back navigation -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Equipment Details</h2>
         <div class="kicker">View technical information, rental history, and maintenance logs.</div>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <!-- Button to return to equipment list -->
         <a class="btn btn-secondary" asp-controller="Equipment" asp-action="List"><i class="bi bi-arrow-left"></i> Back to List</a>
     </div>
 </div>
 
 <div class="row g-3">
-    <!-- LEFT -->
+    <!-- LEFT COLUMN: Main equipment details, rental history, and maintenance log -->
     <div class="col-lg-8">
 
+        <!-- Asset Information Card: displays key details about the equipment -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Asset Information</div>
             <div class="d-flex flex-wrap gap-4">
@@ -28,18 +33,28 @@
                 <div><div class="small-label">Status</div><span class="pill pill-green">Available</span></div>
             </div>
             <hr class="dropdown-divider" />
+            <!-- Additional asset info: purchase, last service, and value -->
             <div class="text-muted" style="font-size:13px;">
                 Purchased on Jun 12 2023 • Last serviced Sep 05 2025 • Value $42,000
             </div>
         </div>
 
-        <!-- Rental History -->
+        <!-- Rental History Card: shows previous and current rentals for this equipment -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Rental History</div>
             <div class="table-responsive">
                 <table class="table-darkish">
-                    <thead><tr><th>Rental ID</th><th>Client</th><th>Out</th><th>Due</th><th>Status</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Rental ID</th>
+                            <th>Client</th>
+                            <th>Out</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
                     <tbody>
+                        <!-- Each row links to the rental details page for the given rental ID -->
                         <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=R-1031">
                             <td>#R-1031</td>
                             <td>Ghost Diagnostics</td>
@@ -59,15 +74,36 @@
             </div>
         </div>
 
-        <!-- Maintenance Log -->
+        <!-- Maintenance Log Card: lists completed maintenance activities for this equipment -->
         <div class="card-panel">
             <div class="fw-semibold mb-2">Maintenance Log</div>
             <div class="table-responsive">
                 <table class="table-darkish">
-                    <thead><tr><th>Ticket</th><th>Date</th><th>Issue</th><th>Status</th><th>Technician</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Date</th>
+                            <th>Issue</th>
+                            <th>Status</th>
+                            <th>Technician</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>MT-211</td><td>Sep 05 2025</td><td>Oil change & filter</td><td><span class="pill pill-green">Completed</span></td><td>Sam P.</td></tr>
-                        <tr><td>MT-198</td><td>May 10 2025</td><td>Brake pads replaced</td><td><span class="pill pill-green">Completed</span></td><td>Rita K.</td></tr>
+                        <!-- Each row shows a maintenance record with status and technician -->
+                        <tr>
+                            <td>MT-211</td>
+                            <td>Sep 05 2025</td>
+                            <td>Oil change & filter</td>
+                            <td><span class="pill pill-green">Completed</span></td>
+                            <td>Sam P.</td>
+                        </tr>
+                        <tr>
+                            <td>MT-198</td>
+                            <td>May 10 2025</td>
+                            <td>Brake pads replaced</td>
+                            <td><span class="pill pill-green">Completed</span></td>
+                            <td>Rita K.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -75,11 +111,13 @@
 
     </div>
 
-    <!-- RIGHT -->
+    <!-- RIGHT COLUMN: Upcoming maintenance and quick access to maintenance page -->
     <div class="col-lg-4">
         <div class="card-panel">
             <div class="fw-semibold mb-2">Upcoming Maintenance</div>
+            <!-- Next scheduled inspection date -->
             <div class="text-muted mb-1">Next inspection due Nov 15 2025</div>
+            <!-- Button to open the maintenance page -->
             <a asp-controller="Maintenance" asp-action="Index" class="btn btn-green w-100 d-inline-flex align-items-center justify-content-center gap-2 mt-2">
                 <i class="bi bi-wrench-adjustable"></i> Open Maintenance
             </a>
@@ -89,6 +127,7 @@
 
 @section Scripts {
     <script>
+        // Enable row click and keyboard navigation for rental history table
         document.querySelectorAll('tr.row-link').forEach(tr=>{
           tr.onclick=()=>location.href=tr.dataset.href;
           tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')tr.click();}

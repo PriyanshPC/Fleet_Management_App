@@ -4,10 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fleet_Management_App.Controllers
 {
+    // Ensures only authenticated users can access rental management features
     [Authorize]
     public class RentalsController : Controller
     {
-        // In-memory seed (IDs WITHOUT '#')
+        /// <summary>
+        /// Static in-memory list of rental records used for demonstration purposes.
+        /// Each RentalListItem represents a single rental transaction.
+        /// </summary>
         private static readonly List<RentalListItem> Rentals = new()
         {
             new(){ Id="R-1035", Client="Starlight Media",  Category="Cameras",  Items="FX6 Camera, Tripod",         Out=new(2025,10,12), Due=new(2025,10,18), Status="On Rent",   Total=420.00m },
@@ -20,22 +24,42 @@ namespace Fleet_Management_App.Controllers
             new(){ Id="R-1028", Client="BuildRight",       Category="Tools",    Items="Thermal Imager",             Out=new(2025,10,01), Due=new(2025,10,12), Status="Returned",  Total=210.00m }
         };
 
+        /// <summary>
+        /// Displays a list of all rental records.
+        /// Passes the Rentals collection to the view for rendering.
+        /// </summary>
+        /// <returns>View displaying all rentals.</returns>
         public IActionResult List()
         {
-            // Server-rendered list (robust even if JS is off)
             return View(Rentals);
         }
 
+        /// <summary>
+        /// Shows details for a specific rental based on its ID.
+        /// Returns 404 if the ID is missing or not found.
+        /// </summary>
+        /// <param name="id">Rental identifier.</param>
+        /// <returns>View with rental details, or NotFound if not found.</returns>
         public IActionResult Details(string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return NotFound();
             var rental = Rentals.FirstOrDefault(r => r.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
             if (rental == null) return NotFound();
 
-            return View(rental); // View expects a RentalListItem (we’ll display it + placeholders)
+            return View(rental);
         }
 
+        /// <summary>
+        /// Displays a form for creating a new rental record.
+        /// </summary>
+        /// <returns>View for new rental creation.</returns>
         public IActionResult New() => View();
+
+        /// <summary>
+        /// Displays the payment page for a specific rental.
+        /// </summary>
+        /// <param name="id">Rental identifier.</param>
+        /// <returns>View for processing payment.</returns>
         public IActionResult Payment(string id) => View();
     }
 }

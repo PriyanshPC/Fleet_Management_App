@@ -1,4 +1,5 @@
 ﻿@{
+    // Determine the display name for the current user
     var userName = (User?.Identity?.IsAuthenticated ?? false)
         ? (User.Identity?.Name ?? "Administrator")
         : "Guest";
@@ -10,41 +11,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - Ghostbusters Fleet</title>
 
-    <!-- Bootstrap + Icons -->
+    <!-- External CSS: Bootstrap framework and icon set -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
 
-    <!-- App styles -->
+    <!-- Application-specific stylesheets -->
     <link href="~/css/site.css" rel="stylesheet" />
     <link href="~/css/nav.css" rel="stylesheet" />
 </head>
 <body>
 
-    <!-- ===== Top Navigation Bar ===== -->
+    <!-- Top navigation bar containing brand, navigation links, refresh button, and user menu -->
     <nav class="navbar topbar px-3 px-md-4">
         <div class="container-fluid d-flex align-items-center justify-content-between">
 
-            <!-- Brand (left) → Dashboard -->
+            <!-- Brand section: links to Dashboard -->
             <a class="navbar-brand d-inline-flex align-items-center gap-2"
                asp-controller="Dashboard" asp-action="Index" title="Go to Dashboard">
                 <i class="bi bi-hexagon-fill brand-icon"></i>
                 <span class="brand-text">Ghostbusters Inc.</span>
             </a>
 
-            <!-- Right cluster: MENUS + Refresh + User -->
+            <!-- Right section: navigation menu, refresh button, and user account dropdown -->
             <div class="d-flex align-items-center gap-2">
 
-                <!-- Primary nav menu (right-aligned) -->
+                <!-- Main navigation menu with links and dropdowns -->
                 <ul class="navbar-nav flex-row gap-1 me-2">
 
-                    <!-- Dashboard -->
+                    <!-- Dashboard link -->
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
                             Dashboard
                         </a>
                     </li>
 
-                    <!-- Rentals (dropdown) -->
+                    <!-- Rentals dropdown menu -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Rentals
@@ -59,7 +60,7 @@
                         </ul>
                     </li>
 
-                    <!-- Equipment (dropdown) -->
+                    <!-- Equipment dropdown menu -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Equipment
@@ -74,7 +75,7 @@
                         </ul>
                     </li>
 
-                    <!-- Tracking -->
+                    <!-- Tracking link -->
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Tracking" asp-action="Index">
                             Tracking
@@ -82,26 +83,26 @@
                     </li>
                 </ul>
 
-                <!-- Refresh icon -->
+                <!-- Button to open the refresh modal -->
                 <button class="icon-btn" type="button" data-bs-toggle="modal" data-bs-target="#refreshModal"
                         title="Check for updates">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
 
-                <!-- User dropdown -->
+                <!-- User account dropdown menu -->
                 <div class="dropdown">
                     <button class="icon-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
-                        <i class="bi bi-person"></i>   <!-- changed to 'person' -->
+                        <i class="bi bi-person"></i>
                     </button>
-                    <!-- 'dropdown-menu-end' keeps the menu anchored to the button's right edge
-                         and expands left into the page -->
                     <ul class="dropdown-menu dropdown-menu-end account-menu">
                         <li>
+                            <!-- Display user information in dropdown header -->
                             <div class="dropdown-header d-flex align-items-center gap-2">
                                 <i class="bi bi-person"></i>
                                 <div>
                                     <div class="fw-semibold">@((User?.Identity?.Name) ?? "Administrator")</div>
                                     @{
+                                        // Show username claim if available
                                         var uname = User?.FindFirst("username")?.Value;
                                         if (!string.IsNullOrWhiteSpace(uname))
                                         {
@@ -113,6 +114,7 @@
                         </li>
                         <li><hr class="dropdown-divider" /></li>
                         <li>
+                            <!-- Log out link -->
                             <a class="dropdown-item text-danger" asp-controller="Auth" asp-action="Logout">
                                 <i class="bi bi-box-arrow-right me-2"></i>Log out
                             </a>
@@ -120,17 +122,16 @@
                     </ul>
                 </div>
 
-
             </div>
         </div>
     </nav>
 
-    <!-- ===== Page Content ===== -->
+    <!-- Main content area for page-specific content -->
     <main class="container-fluid py-4">
         @RenderBody()
     </main>
 
-    <!-- ===== Refresh Modal ===== -->
+    <!-- Modal dialog shown when refresh is triggered -->
     <div class="modal fade" id="refreshModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content card-dark p-3">
@@ -146,7 +147,7 @@
         </div>
     </div>
 
-    <!-- ===== Scripts ===== -->
+    <!-- JavaScript dependencies and page-specific scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js"></script>
     @RenderSection("Scripts", required: false)

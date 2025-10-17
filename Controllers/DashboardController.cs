@@ -4,24 +4,29 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fleet_Management_App.Controllers
 {
+    // Ensures only authenticated users can access the dashboard
     [Authorize]
     public class DashboardController : Controller
     {
+        // Displays the main dashboard view with key metrics and data
         public IActionResult Index()
         {
+            // Create and populate the dashboard view model with sample data
             var vm = new DashboardViewModel
             {
+                // Key performance indicators for the dashboard
                 Kpi = new DashboardKpi
                 {
-                    TotalEquipment = 128,
-                    ActiveRentals = 23,
-                    PendingMaintenance = 7,
-                    FleetAvailable = 84,
-                    FleetAvailablePct = 65,
-                    AddedThisWeek = 5,
-                    ActiveRentalsTodayDelta = +3,
-                    PendingMaintDelta = -2
+                    TotalEquipment = 128,           // Total number of equipment in fleet
+                    ActiveRentals = 23,             // Number of currently active rentals
+                    PendingMaintenance = 7,         // Equipment pending maintenance
+                    FleetAvailable = 84,            // Number of available fleet items
+                    FleetAvailablePct = 65,         // Percentage of fleet available
+                    AddedThisWeek = 5,              // Equipment added this week
+                    ActiveRentalsTodayDelta = +3,   // Change in active rentals today
+                    PendingMaintDelta = -2          // Change in pending maintenance
                 },
+                // List of available equipment by category
                 Availability = new List<AvailabilityByCategory>
                 {
                     new(){ Category = "PPE",      Available = 56 },
@@ -31,7 +36,9 @@ namespace Fleet_Management_App.Controllers
                     new(){ Category = "Mics",     Available = 18 },
                     new(){ Category = "Tools",    Available = 14 },
                 },
-                MaintDonut = new List<int> { 84, 5, 2 }, // OK, Scheduled, Urgent
+                // Maintenance status donut chart data: OK, Scheduled, Urgent
+                MaintDonut = new List<int> { 84, 5, 2 },
+                // List of currently active rentals with details
                 ActiveRentals = new List<ActiveRentalRow>
                 {
                     new(){ RentalId="#R-1029", Client="Starlight Media", Items="FX6 Camera, DJI Mavic 3", OutDate="Oct 12", DueDate="Oct 18", Status="On Rent" },
@@ -41,6 +48,7 @@ namespace Fleet_Management_App.Controllers
                 }
             };
 
+            // Pass the populated view model to the dashboard view
             return View(vm);
         }
     }

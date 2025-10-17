@@ -1,17 +1,25 @@
-﻿
-/* Top bar: darker than page, subtle line + shadow */
+﻿/* nav.css - Navigation bar and dropdown styling for Razor Pages Fleet Management App
+   Purpose: Provides dark-themed, responsive navigation bar, dropdowns, and icon button styles
+*/
+
+/* === Top Navigation Bar ===
+   Sticky top bar with shadow and subtle border for separation from page content.
+   Uses a darker surface color for contrast with the main background.
+*/
 .topbar {
-    background: var(--surface);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-    height: 60px;
-    position: sticky;
+    background: var(--surface); /* Dark surface for navbar */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06); /* Subtle bottom border */
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); /* Elevation shadow */
+    height: 60px; /* Consistent navbar height */
+    position: sticky; /* Sticks to top on scroll */
     top: 0;
-    z-index: 1030;
-    overflow: visible; /* allow dropdowns to extend */
+    z-index: 1030; /* Ensures navbar stays above other elements */
+    overflow: visible; /* Allows dropdowns to extend outside navbar */
 }
 
-/* Brand */
+/* === Brand Section ===
+   Styles for the app logo and name on the left side of the navbar.
+*/
 .navbar-brand {
     color: #fff;
     text-decoration: none;
@@ -19,82 +27,87 @@
 
     .navbar-brand:hover {
         color: #fff;
-        opacity: 0.9;
+        opacity: 0.9; /* Slight fade on hover for feedback */
     }
 
 .brand-icon {
-    font-size: 18px;
-    color: var(--primary);
+    font-size: 18px; /* Icon size for brand logo */
+    color: var(--primary); /* Accent color for brand icon */
 }
 
 .brand-text {
-    font-weight: 600;
+    font-weight: 600; /* Bold app name */
 }
 
-/* Primary nav links (right cluster) */
+/* === Primary Navigation Links ===
+   Styles for main navigation links (typically on the right side).
+   Includes hover, focus, and active states for accessibility and feedback.
+*/
 .navbar-nav {
-    align-items: center;
-    gap: 0.25rem;
+    align-items: center; /* Vertically center nav items */
+    gap: 0.25rem; /* Small gap between links */
 }
 
 .nav-link {
-    color: #d8d8e3;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    transition: background 0.2s ease, color 0.2s ease;
+    color: #d8d8e3; /* Muted link color for dark theme */
+    padding: 0.5rem 0.75rem; /* Comfortable clickable area */
+    border-radius: 8px; /* Rounded corners for modern look */
+    transition: background 0.2s ease, color 0.2s ease; /* Smooth hover/focus transitions */
 }
 
     .nav-link:hover,
     .nav-link:focus {
         color: #fff;
-        background: var(--secondary-hover);
+        background: var(--secondary-hover); /* Highlight on hover/focus */
     }
 
     .nav-link.active,
     .nav-link.dropdown-toggle.show {
         color: #fff;
-        background: var(--secondary);
+        background: var(--secondary); /* Active link background */
     }
 
-/* Icon buttons (Refresh, User) */
+/* === Icon Buttons ===
+   Used for actions like refresh, user profile, etc.
+   Circular, elevated buttons with icon centered inside.
+*/
 .icon-btn {
     display: inline-grid;
-    place-items: center;
+    place-items: center; /* Center icon horizontally and vertically */
     width: 38px;
     height: 38px;
-    border-radius: 10px;
-    background: var(--secondary);
-    border: 1px solid var(--border);
+    border-radius: 10px; /* Rounded for touch-friendly UI */
+    background: var(--secondary); /* Button background */
+    border: 1px solid var(--border); /* Subtle border for separation */
     color: #fff;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease; /* Smooth background change */
 }
 
     .icon-btn:hover {
-        background: var(--secondary-hover);
+        background: var(--secondary-hover); /* Button highlight on hover */
     }
 
     .icon-btn:active {
-        background: var(--secondary-active);
+        background: var(--secondary-active); /* Button pressed state */
     }
 
     .icon-btn i.bi-person {
-        font-size: 18px;
+        font-size: 18px; /* Consistent icon size for user/profile */
     }
-/* user icon size */
 
-/* ========== Dropdowns ========== */
-
-/* Keep menus anchored under their toggles and overlay the page (no reflow) */
+/* === Dropdown Menus ===
+   Customizes dropdown appearance and behavior for dark theme and overlays.
+   Ensures dropdowns are anchored and visually distinct.
+*/
 .topbar .dropdown {
-    position: relative;
+    position: relative; /* Anchor dropdown to parent */
 }
 
 .topbar .dropdown-menu {
-    position: absolute; /* Bootstrap also uses absolute; keep consistent */
-    top: calc(100% + 0.5rem);
-    /* Let Popper/Bootstrap decide left/right unless overridden below */
-    z-index: 1100;
-    /* Theme variables for dark dropdowns */
+    position: absolute; /* Overlay dropdown below toggle */
+    top: calc(100% + 0.5rem); /* Space below toggle for visibility */
+    z-index: 1100; /* Ensure dropdown overlays page content */
+    /* Dark theme variables for Bootstrap dropdowns */
     --bs-dropdown-bg: var(--surface);
     --bs-dropdown-border-color: var(--border);
     --bs-dropdown-color: #fff;
@@ -103,24 +116,27 @@
     --bs-dropdown-link-hover-color: #fff;
     --bs-dropdown-link-active-bg: var(--primary);
     --bs-dropdown-link-active-color: #fff;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-    /* Prevent hover/active backgrounds from bleeding outside rounded corners */
-    border-radius: 12px;
-    overflow: hidden;
-    /* Use inner padding instead of item margins for clean clipping */
-    padding: 6px;
-    min-width: 200px;
+    background: var(--surface); /* Dropdown background */
+    border: 1px solid var(--border); /* Dropdown border */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6); /* Strong shadow for overlay effect */
+    border-radius: 12px; /* Rounded corners for dropdown */
+    overflow: hidden; /* Prevent hover/active backgrounds from bleeding */
+    padding: 6px; /* Inner padding for clean clipping */
+    min-width: 200px; /* Minimum width for dropdown menu */
 }
 
-    /* User/account menu: anchor to the button's right edge so it opens LEFT */
+    /* === Account/User Dropdown Menu ===
+       Anchors menu to the right edge of the button for leftward opening.
+    */
     .topbar .dropdown-menu.account-menu {
         right: 0;
         left: auto;
     }
 
-/* Dropdown items (no margins; rely on menu padding + clipping) */
+/* === Dropdown Items ===
+   Individual menu items with hover, focus, and active states.
+   Uses padding and rounded corners for touch-friendly design.
+*/
 .topbar .dropdown-item {
     color: #fff;
     border-radius: 8px;
@@ -131,29 +147,33 @@
 
     .topbar .dropdown-item:hover,
     .topbar .dropdown-item:focus {
-        background: rgba(46, 144, 255, 0.16);
+        background: rgba(46, 144, 255, 0.16); /* Highlight on hover/focus */
         color: #fff;
     }
 
     .topbar .dropdown-item.active,
     .topbar .dropdown-item:active {
-        background: var(--primary) !important;
+        background: var(--primary) !important; /* Active item background */
         color: #fff !important;
     }
 
-/* Divider + header */
+/* === Dropdown Divider and Header ===
+   Visual separation and section headers within dropdown menus.
+*/
 .dropdown-divider {
-    border-color: var(--border);
-    margin: 6px 0;
+    border-color: var(--border); /* Themed divider color */
+    margin: 6px 0; /* Spacing above/below divider */
 }
 
 .dropdown-header {
     color: #fff;
     font-size: 13px;
-    padding: 6px 10px 4px;
+    padding: 6px 10px 4px; /* Space for header text */
 }
 
-/* Ensure toggle looks good while menu is open */
+/* === Dropdown Toggle Active State ===
+   Ensures toggle button remains highlighted while menu is open.
+*/
 .topbar .nav-link.dropdown-toggle.show,
 .topbar .nav-link.dropdown-toggle:focus {
     background: var(--secondary);
@@ -161,18 +181,21 @@
     border-radius: 8px;
 }
 
-/* ========== Responsive tweaks ========== */
+/* === Responsive Adjustments ===
+   Tweaks for navigation bar and buttons on smaller screens.
+   Ensures usability and readability on tablets and mobile devices.
+*/
 @media (max-width: 768px) {
     .nav-link {
-        padding: 0.4rem 0.6rem;
+        padding: 0.4rem 0.6rem; /* Slightly smaller clickable area */
     }
 
     .icon-btn {
         width: 34px;
-        height: 34px;
+        height: 34px; /* Smaller icon buttons for mobile */
     }
 
     .brand-text {
-        font-size: 15px;
+        font-size: 15px; /* Reduce brand text size for space */
     }
 }
