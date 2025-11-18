@@ -1,102 +1,91 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using Fleet_Management_App.Data.Entities;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Controllers
+namespace Fleet_Management_App.Controllers.Api
 {
-    // Controller responsible for user authentication (login/logout)
-    public class AuthController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        // Hardcoded credentials for demonstration purposes
-        private const string USERNAME = "admin";
-        private const string PASSWORD = "admin";
-        // Session key for tracking failed login attempts
-        private const string FAIL_KEY = "login_fail_count";
+        private readonly GhostbustersFleetContext _context;
 
-        [HttpGet]
-        [AllowAnonymous]
-        // Displays the login page. Redirects authenticated users to the dashboard.
-        public IActionResult Login(string? returnUrl = null)
+        public AuthController(GhostbustersFleetContext context)
         {
-            if (User?.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Dashboard");
-
-            ViewData["ReturnUrl"] = returnUrl;
-            return View();
+            _context = context;
         }
 
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        // Handles login form submission, validates credentials, manages failed attempts, and signs in the user.
-        public async Task<IActionResult> Login(string username, string password, bool remember)
+        public class LoginRequest
         {
-            const int MAX_FAILS = 3;
-            // Retrieve the current number of failed login attempts from session
-            int fails = HttpContext.Session.GetInt32(FAIL_KEY) ?? 0;
-
-            // Lock account after maximum failed attempts
-            if (fails >= MAX_FAILS)
-            {
-                TempData["LoginError"] = "Your account is locked after 3 failed attempts. Please contact IT.";
-                return View();
-            }
-
-            // Validate credentials
-            if (string.Equals(username, USERNAME, StringComparison.OrdinalIgnoreCase) && password == PASSWORD)
-            {
-                // Reset failed attempts on successful login
-                HttpContext.Session.Remove(FAIL_KEY);
-
-                // Create user claims for authentication
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, "Administrator"),
-                    new Claim("username", USERNAME)
-                };
-                var identity = new ClaimsIdentity(claims, "FleetCookie");
-                var principal = new ClaimsPrincipal(identity);
-
-                // Set authentication properties (persistent cookie, expiration, refresh allowed)
-                var props = new AuthenticationProperties
-                {
-                    IsPersistent = remember,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8),
-                    AllowRefresh = true
-                };
-
-                // Sign in the user with the specified authentication scheme
-                await HttpContext.SignInAsync("FleetCookie", principal, props);
-                return RedirectToAction("Index", "Dashboard");
-            }
-
-            // Increment failed login attempts and update session
-            fails++;
-            HttpContext.Session.SetInt32(FAIL_KEY, fails);
-
-            // Display appropriate error message based on remaining attempts
-            if (fails >= MAX_FAILS)
-            {
-                TempData["LoginError"] = "Your account is locked after 3 failed attempts. Please contact IT.";
-            }
-            else
-            {
-                int remaining = MAX_FAILS - fails;
-                TempData["LoginError"] = $"Incorrect username or password. ({remaining} attempt{(remaining == 1 ? "" : "s")} left)";
-            }
-
-            return View();
+            public string Username { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
 
-        [Authorize]
-        // Logs out the authenticated user, clears session, and redirects to login page.
-        public async Task<IActionResult> Logout()
+        public class LoginResponse
         {
-            await HttpContext.SignOutAsync("FleetCookie");
-            HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+            public bool Success { get; set; }
+            public string? Message { get; set; }
+            public string? EmployeeName { get; set; }
+        }
+
+        // POST: /api/auth/login
+        [HttpPost("login")]
+        public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new LoginResponse
+                {
+                    Success = false,
+                    Message = "Username and password are required."
+                });
+            }
+
+            // Check Employee table
+            var user = await _context.Employees
+                .FirstOrDefaultAsync(e =>
+                    e.Username == request.Username &&
+                    e.Password == request.Password); // TODO: hash in real app
+
+            if (user == null)
+            {
+                return Unauthorized(new LoginResponse
+                {
+                    Success = false,
+                    Message = "Invalid username or password."
+                });
+            }
+
+            // Build identity + claims for cookie
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.EmployeeId.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim("username", user.Username)
+            };
+
+            var identity = new ClaimsIdentity(
+                claims,
+                CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            principal);
+
+            return Ok(new LoginResponse
+            {
+                Success = true,
+                EmployeeName = user.Name,
+                Message = "Login successful."
+            });
         }
     }
 }

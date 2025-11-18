@@ -1,30 +1,28 @@
-// Program.cs
+using Fleet_Management_App.Data.Entities;
+using Microsoft.AspNetCore.Authentication.Cookies;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// MVC + Razor
+// MVC
 builder.Services.AddControllersWithViews();
 
-// Sessions (8 hours)
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromHours(8);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+// Register EF Core DbContext (connection is configured in OnConfiguring)
+builder.Services.AddDbContext<GhostbustersFleetContext>();
 
-// Cookie auth (simple) – you can swap to Identity later
-builder.Services.AddAuthentication("FleetCookie")
-    .AddCookie("FleetCookie", options =>
+// Cookie-based authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/Login";
-        options.LogoutPath = "/Auth/Logout";
-        options.AccessDeniedPath = "/Auth/Login";
-        options.SlidingExpiration = true;
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.LoginPath = "/Auth/Login";        // where to send unauthenticated users
+        options.AccessDeniedPath = "/Auth/Login"; // simple for now
+        options.SlidingExpiration = false;
     });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Standard middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -36,12 +34,13 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();
+// **Order matters**: auth before endpoints
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Default route -> Login page (since you don’t have HomeController)
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
 app.Run();

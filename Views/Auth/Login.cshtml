@@ -139,5 +139,85 @@
 
     <!-- Bootstrap JS bundle for interactive components -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Login script: console logging + redirect using API -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form[method="post"]');
+            if (!form) return;
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault(); // prevent default POST so we can use the API
+
+                const usernameInput = document.getElementById('login-username');
+                const passwordInput = document.getElementById('login-password');
+
+                const username = usernameInput ? usernameInput.value.trim() : "";
+                const password = passwordInput ? passwordInput.value.trim() : "";
+
+                let errorBanner = document.getElementById('login-error-banner');
+
+                const showError = (message) => {
+                    if (!errorBanner) {
+                        errorBanner = document.createElement('div');
+                        errorBanner.id = 'login-error-banner';
+                        errorBanner.className = 'error-banner text-center';
+
+                        const card = form.closest('.login-card') || form.parentElement;
+                        card.insertBefore(errorBanner, form);
+                    }
+                    errorBanner.textContent = message;
+                };
+
+                // Clear any previous error
+                if (errorBanner) {
+                    errorBanner.textContent = "";
+                }
+
+                if (!username || !password) {
+                    showError("Please enter both username and password.");
+                    console.log("Login blocked: missing username or password");
+                    return;
+                }
+
+                console.log("Attempting login for user:", username);
+
+                try {
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const antiForgeryToken = tokenInput ? tokenInput.value : "";
+
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': antiForgeryToken
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password
+                        })
+                    });
+
+                    let data = null;
+                    try {
+                        data = await response.json();
+                    } catch { }
+
+                    if (response.ok && data && data.success) {
+                        console.log("Login successful for user:", username);
+                        // Redirect to Dashboard after successful auth
+                        window.location.href = "/Dashboard/Index";
+                    } else {
+                        const message = (data && data.message) || "Invalid username or password.";
+                        console.log("Login failed:", message);
+                        showError(message);
+                    }
+                } catch (err) {
+                    console.error("Login error:", err);
+                    showError("An unexpected error occurred. Please try again.");
+                }
+            });
+        });
+    </script>
 </body>
 </html>
