@@ -1,10 +1,18 @@
-﻿@{
-    // Set the page title for the equipment list view
+﻿@using System.Linq
+@using Fleet_Management_App.Data.Entities
+@model IEnumerable<Equipment>
+
+@{
     ViewData["Title"] = "Equipment – List";
-    // Define available equipment categories for filtering
-    var categories = new[] { "All", "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
-    // Define possible equipment statuses for filtering
-    var statuses = new[] { "All", "Available", "Rented", "Maintenance", "Retired" };
+
+    var categoryOptions = Model
+        .Select(e => e.EquipmentCategory)
+        .Distinct()
+        .OrderBy(c => c)
+        .ToList();
+
+    // Matches the enum values in the DB design
+    var statusOptions = new[] { "All", "Available", "UnderMaintenance", "OutForRental", "Damaged" };
 }
 
 <!-- Page header: displays the equipment section title and description -->
@@ -15,37 +23,45 @@
     </div>
 </div>
 
-<!-- Filter form: allows searching and filtering equipment by category, status, and location -->
+<!-- Filters card -->
 <div class="card-panel mb-3">
-    <form class="row g-2 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label small-label">Search</label>
-            <input id="q" class="form-control" placeholder="Name, asset ID..." />
+    <form class="row g-4 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small-label" for="q">Search</label>
+            <input id="q" class="form-control" placeholder="Search by ID, name, type…" />
         </div>
         <div class="col-md-2">
-            <label class="form-label small-label">Category</label>
+            <label class="form-label small-label" for="category">Category</label>
             <select id="category" class="form-select">
-                @foreach (var c in categories)
+                <option>All</option>
+                @foreach (var c in categoryOptions)
                 {
                     <option>@c</option>
                 }
             </select>
         </div>
         <div class="col-md-2">
-            <label class="form-label small-label">Status</label>
+            <label class="form-label small-label" for="status">Availability</label>
             <select id="status" class="form-select">
-                @foreach (var s in statuses)
+                @foreach (var s in statusOptions)
                 {
-                    <option>@s</option>
+                    <option value="@s">@s</option>
                 }
             </select>
         </div>
         <div class="col-md-2">
-            <label class="form-label small-label">Location</label>
-            <input id="location" class="form-control" placeholder="Site / Depot" />
+            <label class="form-label small-label mb-0 me-2" for="sortBy">Sort</label>
+            <select id="sortBy" class="form-select form-select-sm">
+                <option value="">None</option>
+                <option value="name:asc">Name ↑</option>
+                <option value="name:desc">Name ↓</option>
+                <option value="category:asc">Category ↑</option>
+                <option value="category:desc">Category ↓</option>
+                <option value="type:asc">Type ↑</option>
+                <option value="type:desc">Type ↓</option>
+            </select>
         </div>
-        <div class="col-md-1 d-grid">
-            <!-- Button to clear all filters and reset the form -->
+        <div class="col-md-2 d-grid">
             <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
         </div>
     </form>
@@ -55,7 +71,6 @@
 <div class="card-panel">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-semibold">Results</div>
-        <!-- Shows the number of results found -->
         <div class="text-muted" id="resultCount" style="font-size:13px;">—</div>
     </div>
 
@@ -66,96 +81,173 @@
                     <th>Asset ID</th>
                     <th>Name</th>
                     <th>Category</th>
-                    <th>Location</th>
+                    <th>Type</th>
                     <th>Status</th>
                     <th class="text-end">Value</th>
                 </tr>
             </thead>
-            <tbody><!-- Equipment rows are injected by JavaScript --></tbody>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    var statusClass = e.EquipmentAvailability switch
+                    {
+                        "Available" => "pill-green",
+                        "OutForRental" => "pill-blue",
+                        "UnderMaintenance" => "pill-amber",
+                        "Damaged" => "pill-red",
+                        _ => "pill-gray"
+                    };
+
+                    <tr class="row-link"
+                        tabindex="0"
+                        data-category="@e.EquipmentCategory"
+                        data-status="@e.EquipmentAvailability"
+                        data-name="@e.EquipmentName"
+                        data-code="@e.EquipmentCode"
+                        data-type="@e.EquipmentType"
+                        data-href="@Url.Action("Details", "Equipment", new { id = e.EquipmentCode })">
+                        <td>@e.EquipmentCode</td>
+                        <td>@e.EquipmentName</td>
+                        <td>@e.EquipmentCategory</td>
+                        <td>@e.EquipmentType</td>
+                        <td>
+                            <span class="pill @statusClass">
+                                @e.EquipmentAvailability
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            @e.EquipmentValue.ToString("C")
+                        </td>
+                    </tr>
+                }
+            </tbody>
         </table>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // Static equipment data for demonstration purposes
-        const EQUIP = [
-          {id:"VEH-001", name:"Transit Van #1", cat:"Vehicles", loc:"Garage A", status:"Available", value:42000},
-          {id:"VEH-002", name:"Transit Van #2", cat:"Vehicles", loc:"Garage B", status:"Maintenance", value:41000},
-          {id:"DRN-101", name:"DJI Mavic 3", cat:"Drones", loc:"Depot 1", status:"Rented", value:1800},
-          {id:"CAM-REDK-0034", name:"RED Komodo 6K", cat:"Cameras", loc:"Depot 1", status:"Rented", value:9500},
-          {id:"MIC-004", name:"Lavalier Set", cat:"Mics", loc:"Depot 2", status:"Available", value:600},
-          {id:"PPE-055", name:"Hazmat Suit Set B", cat:"PPE", loc:"Depot 3", status:"Available", value:150},
-          {id:"TLS-014", name:"Thermal Imager", cat:"Tools", loc:"Depot 2", status:"Retired", value:400}
-        ];
+        (function () {
+            const table = document.getElementById('equipTable');
+            if (!table) return;
 
-        // Shorthand for document.querySelector
-        const $ = s => document.querySelector(s);
+                    const rows = Array.from(table.querySelectorAll('tbody tr'));
+                    const inputQ = document.getElementById('q');
+                    const selectCategory = document.getElementById('category');
+                    const selectStatus = document.getElementById('status');
+                    const selectSort = document.getElementById('sortBy');
+                    const clearBtn = document.getElementById('clearFilters');
+                    const resultCount = document.getElementById('resultCount');
 
-        // Format a number as USD currency
-        function money(v) {
-            return v.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+                function applyFilters() {
+                    const q = (inputQ.value || '').toLowerCase().trim();
+                    const cat = selectCategory.value;
+                    const status = selectStatus.value;
+                    const sortValue = selectSort ? selectSort.value : '';
+                    let visible = 0;
+                    const visibleRows = [];
+
+
+                    rows.forEach(row => {
+                        const name = (row.dataset.name || '').toLowerCase();
+                        const code = (row.dataset.code || '').toLowerCase();
+                        const type = (row.dataset.type || '').toLowerCase();
+                        const rowCat = row.dataset.category;
+                        const rowStatus = row.dataset.status;
+
+                    const matchesText =
+                        !q ||
+                        name.includes(q) ||
+                        code.includes(q) ||
+                        type.includes(q);
+
+                    const matchesCat = cat === 'All' || rowCat === cat;
+                    const matchesStatus = status === 'All' || rowStatus === status;
+
+                            const show = matchesText && matchesCat && matchesStatus;
+
+        row.style.display = show ? '' : 'none';
+        if (show) {
+            visible++;
+            visibleRows.push(row);
         }
+        });
 
-        // Return a styled status pill for equipment status
-        function pill(st) {
-            const map = {
-                Available: 'pill pill-green',
-                Rented: 'pill pill-blue',
-                Maintenance: 'pill pill-amber',
-                Retired: 'pill pill-gray'
+        // Apply sorting to the visible rows only
+        if (sortValue && visibleRows.length > 1) {
+            const getCellText = (row, index) =>
+                (row.cells[index]?.textContent || '').trim().toLowerCase();
+
+            const compare = (a, b, index, direction) => {
+                const va = getCellText(a, index);
+                const vb = getCellText(b, index);
+                if (va < vb) return direction === 'asc' ? -1 : 1;
+                if (va > vb) return direction === 'asc' ? 1 : -1;
+                return 0;
             };
-            return `<span class="${map[st] || 'pill'}">${st}</span>`;
+
+            const [field, direction] = sortValue.split(':');
+
+            visibleRows.sort((a, b) => {
+                switch (field) {
+                    case 'name':
+                        // Name is the 2nd column (index 1)
+                        return compare(a, b, 1, direction);
+                    case 'category':
+                        // Category is the 3rd column (index 2)
+                        return compare(a, b, 2, direction);
+                    case 'type':
+                        // Type is the 4th column (index 3)
+                        return compare(a, b, 3, direction);
+                    default:
+                        return 0;
+                }
+            });
+
+            const tbody = table.querySelector('tbody');
+            visibleRows.forEach(row => tbody.appendChild(row));
         }
 
-        // Render the equipment table rows based on filtered data
-        function render(rows) {
-            const tb = $('#equipTable tbody');
-            tb.innerHTML = rows.map(e => `
-                <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Equipment")?id=${encodeURIComponent(e.id)}">
-                  <td>${e.id}</td><td>${e.name}</td><td>${e.cat}</td>
-                  <td>${e.loc}</td><td>${pill(e.status)}</td><td class="text-end">${money(e.value)}</td>
-                </tr>`).join('');
-            // Update the result count display
-            $('#resultCount').textContent = `${rows.length} result${rows.length == 1 ? '' : 's'}`;
-            bindLinks();
+        if (resultCount) {
+            resultCount.textContent = `${visible} result${visible === 1 ? '' : 's'}`;
         }
+            }
 
-        // Enable row click and keyboard navigation for equipment details
-        function bindLinks() {
-            document.querySelectorAll('tr.row-link').forEach(tr => {
-                tr.onclick = () => location.href = tr.dataset.href;
-                tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') tr.click(); }
+            function wireRowLinks() {
+                rows.forEach(row => {
+                    const href = row.dataset.href;
+                    if (!href) return;
+
+                    row.addEventListener('click', () => {
+                        window.location.href = href;
+                    });
+
+                    row.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            window.location.href = href;
+                        }
+                    });
+                });
+            }
+
+                    if (inputQ) inputQ.addEventListener('input', applyFilters);
+        if (selectCategory) selectCategory.addEventListener('change', applyFilters);
+        if (selectStatus) selectStatus.addEventListener('change', applyFilters);
+        if (selectSort) selectSort.addEventListener('change', applyFilters);
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (inputQ) inputQ.value = '';
+                if (selectCategory) selectCategory.value = 'All';
+                if (selectStatus) selectStatus.value = 'All';
+                if (selectSort) selectSort.value = '';
+                applyFilters();
             });
         }
 
-        // Filter equipment based on search and selected filters
-        function filter() {
-            const q = $('#q').value.toLowerCase(),
-                  c = $('#category').value,
-                  s = $('#status').value,
-                  l = $('#location').value.toLowerCase();
-            render(EQUIP.filter(e => {
-                if (q && !(`${e.name} ${e.id}`.toLowerCase().includes(q))) return false;
-                if (c !== 'All' && e.cat !== c) return false;
-                if (s !== 'All' && e.status !== s) return false;
-                if (l && !e.loc.toLowerCase().includes(l)) return false;
-                return true;
-            }));
-        }
-
-        // Attach filter event listeners to all filter inputs
-        ['q', 'category', 'status', 'location'].forEach(id => $( '#' + id).addEventListener('input', filter));
-
-        // Clear all filters and reset the form
-        $('#clearFilters').onclick = () => {
-            ['q', 'location'].forEach(i => $('#' + i).value = '');
-            $('#category').value = 'All';
-            $('#status').value = 'All';
-            filter();
-        }
-
-        // Initial render of the equipment table
-        render(EQUIP);
+        wireRowLinks();
+        applyFilters();
+        })();
     </script>
 }

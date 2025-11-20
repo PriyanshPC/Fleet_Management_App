@@ -1,8 +1,27 @@
-﻿@{
-    // Get the equipment ID from the query string, default to "VEH-001" if not provided
-    var id = (string?)Context.Request.Query["id"] ?? "VEH-001";
-    // Set the page title to include the equipment ID
-    ViewData["Title"] = $"Equipment Details • {id}";
+﻿﻿@using System.Linq
+@using Fleet_Management_App.Data.Entities
+@model Equipment
+
+@{
+    ViewData["Title"] = $"Equipment Details • {Model.EquipmentCode}";
+
+    string availabilityClass = Model.EquipmentAvailability switch
+    {
+        "Available" => "pill-green",
+        "OutForRental" => "pill-blue",
+        "UnderMaintenance" => "pill-amber",
+        "Damaged" => "pill-red",
+        _ => "pill-gray"
+    };
+
+    decimal DailyRate = @Model.EquipmentValue * 0.015m;
+    decimal SecurityFee = Model.EquipmentValue * 0.10m;
+    decimal DamageFee = Model.EquipmentValue * 0.25m;
+
+    var latestRentedEquipment = Model.RentedEquipments
+        ?.Where(re => re.Rental != null)
+        .OrderByDescending(re => re.Rental!.StartDate)
+        .FirstOrDefault();
 }
 
 <!-- Page header: shows title, description, and back navigation -->
@@ -13,124 +32,201 @@
     </div>
     <div class="d-flex align-items-center gap-2">
         <!-- Button to return to equipment list -->
-        <a class="btn btn-secondary" asp-controller="Equipment" asp-action="List"><i class="bi bi-arrow-left"></i> Back to List</a>
+        <a class="btn btn-secondary" asp-controller="Equipment" asp-action="List">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
     </div>
 </div>
 
 <div class="row g-3">
     <!-- LEFT COLUMN: Main equipment details, rental history, and maintenance log -->
-    <div class="col-lg-8">
+    <div class="col-lg-9">
 
-        <!-- Asset Information Card: displays key details about the equipment -->
+        <!-- Asset Information Card -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Asset Information</div>
-            <div class="d-flex flex-wrap gap-4">
-                <div><div class="small-label">Asset ID</div><div class="fw-semibold">@id</div></div>
-                <div><div class="small-label">Name</div><div class="fw-semibold">Transit Van #1</div></div>
-                <div><div class="small-label">Category</div><div class="fw-semibold">Vehicles</div></div>
-                <div><div class="small-label">Model</div><div class="fw-semibold">Ford Transit LWB</div></div>
-                <div><div class="small-label">Location</div><div class="fw-semibold">Garage A</div></div>
-                <div><div class="small-label">Status</div><span class="pill pill-green">Available</span></div>
+            <div class="d-flex flex-wrap gap-5">
+                <div>
+                    <div class="small-label">Asset ID</div>
+                    <div class="fw-semibold">@Model.EquipmentCode</div>
+                </div>
+                <div>
+                    <div class="small-label">Name</div>
+                    <div class="fw-semibold">@Model.EquipmentName</div>
+                </div>
+                <div>
+                    <div class="small-label">Category</div>
+                    <div class="fw-semibold">@Model.EquipmentCategory</div>
+                </div>
+                <div>
+                    <div class="small-label">Type</div>
+                    <div class="fw-semibold">@Model.EquipmentType</div>
+                </div>
+                <div>
+                    <div class="small-label">Tracking ID</div>
+                    <div class="fw-semibold">
+                        @(string.IsNullOrWhiteSpace(Model.EquipmentTrackingId) ? "—" : Model.EquipmentTrackingId)
+                    </div>
+                </div>
+                <div>
+                    <div class="small-label">Status</div>
+                    <span class="pill @availabilityClass">@Model.EquipmentAvailability</span>
+                </div>
             </div>
             <hr class="dropdown-divider" />
-            <!-- Additional asset info: purchase, last service, and value -->
+            <!-- CHANGED: Value removed, Description added here -->
             <div class="text-muted" style="font-size:13px;">
-                Purchased on Jun 12 2023 • Last serviced Sep 05 2025 • Value $42,000
+                <span class="me-3">
+                    <strong>Description:</strong>
+                    @(string.IsNullOrWhiteSpace(Model.EquipmentDescription)
+                                        ? "No description provided."
+                                        : Model.EquipmentDescription)
+                </span>
+                @if (Model.Vehicle != null)
+                {
+                    <span class="me-3">
+                        <strong>Vehicle:</strong> @Model.Vehicle.Year @Model.Vehicle.Make @Model.Vehicle.Model
+                    </span>
+                    @if (!string.IsNullOrWhiteSpace(Model.Vehicle.LicensePlate))
+                    {
+                        <span class="me-3">
+                            <strong>Plate:</strong> @Model.Vehicle.LicensePlate
+                        </span>
+                    }
+                }
             </div>
         </div>
 
-        <!-- Rental History Card: shows previous and current rentals for this equipment -->
+        <!-- Rental History Card -->
         <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Rental History</div>
-            <div class="table-responsive">
-                <table class="table-darkish">
-                    <thead>
-                        <tr>
-                            <th>Rental ID</th>
-                            <th>Client</th>
-                            <th>Out</th>
-                            <th>Due</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Each row links to the rental details page for the given rental ID -->
-                        <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=R-1031">
-                            <td>#R-1031</td>
-                            <td>Ghost Diagnostics</td>
-                            <td>Oct 10</td>
-                            <td>Oct 20</td>
-                            <td><span class="pill pill-blue">On Rent</span></td>
-                        </tr>
-                        <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=R-1019">
-                            <td>#R-1019</td>
-                            <td>Starlight Media</td>
-                            <td>Aug 12</td>
-                            <td>Aug 18</td>
-                            <td><span class="pill pill-gray">Returned</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            @if (Model.RentedEquipments == null || Model.RentedEquipments.Count == 0)
+            {
+                <div class="text-muted" style="font-size:13px;">No rentals recorded for this asset yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table-darkish">
+                        <thead>
+                            <tr>
+                                <!-- CHANGED: Rental ID -> Rental Code -->
+                                <th>Rental Code</th>
+                                <th>Client</th>
+                                <th>Out</th>
+                                <th>Due</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- CHANGED: Only past 5 rentals -->
+                            @foreach (var re in Model.RentedEquipments.OrderByDescending(re => re.Rental!.StartDate).Take(5))
+                            {
+                                var rental = re.Rental;
+                                if (rental == null)
+                                {
+                                    continue;
+                                }
+
+                                string pillClass = rental.Status switch
+                                {
+                                    "CheckedOut" => "pill-green",
+                                    "Reserved" => "pill-amber",
+                                    "Draft" => "pill-blue",
+                                    "Returned" => "pill-gray",
+                                    "Closed" => "pill-gray",
+                                    _ => "pill-gray"
+                                };
+
+                                <tr>
+                                    <!-- CHANGED: show RentalCode instead of RentalId -->
+                                    <td>@rental.RentalCode</td>
+                                    <td>@(rental.Customer?.CustomerName ?? "Internal")</td>
+                                    <td>@rental.StartDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@rental.EndDate.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <!-- Status already shown as pill -->
+                                        <span class="pill @pillClass">@rental.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
 
-        <!-- Maintenance Log Card: lists completed maintenance activities for this equipment -->
-        <div class="card-panel">
+        <!-- Maintenance Log Card (Past 5) -->
+        <div class="card-panel mb-3">
             <div class="fw-semibold mb-2">Maintenance Log</div>
-            <div class="table-responsive">
-                <table class="table-darkish">
-                    <thead>
-                        <tr>
-                            <th>Ticket</th>
-                            <th>Date</th>
-                            <th>Issue</th>
-                            <th>Status</th>
-                            <th>Technician</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Each row shows a maintenance record with status and technician -->
-                        <tr>
-                            <td>MT-211</td>
-                            <td>Sep 05 2025</td>
-                            <td>Oil change & filter</td>
-                            <td><span class="pill pill-green">Completed</span></td>
-                            <td>Sam P.</td>
-                        </tr>
-                        <tr>
-                            <td>MT-198</td>
-                            <td>May 10 2025</td>
-                            <td>Brake pads replaced</td>
-                            <td><span class="pill pill-green">Completed</span></td>
-                            <td>Rita K.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            @if (Model.MaintenanceEvents == null || Model.MaintenanceEvents.Count == 0)
+            {
+                <div class="text-muted" style="font-size:13px;">No maintenance events recorded for this asset yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table-darkish">
+                        <thead>
+                            <tr>
+                                <th>Opened</th>
+                                <th>Last Service</th>
+                                <th>Next Due</th>
+                                <th>Status</th>
+                                <th>Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- CHANGED: Only past 5 maintenance events -->
+                            @foreach (var m in Model.MaintenanceEvents.OrderByDescending(m => m.OpenedAt).Take(5))
+                            {
+                                string mClass = m.EventStatus == "Open"
+                                ? "pill-amber"
+                                : "pill-green";
 
+                                <tr>
+                                    <td>@m.OpenedAt.ToString("yyyy-MM-dd")</td>
+                                    <td>@m.LastServiceDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@(m.NextServiceDue.HasValue? m.NextServiceDue.Value.ToString("yyyy-MM-dd") : "—")</td>
+                                    <td>
+                                        <span class="pill @mClass">@m.EventStatus</span>
+                                    </td>
+                                    <td>@(string.IsNullOrWhiteSpace(m.MaintenanceOutcome) ? "—" : m.MaintenanceOutcome)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
 
-    <!-- RIGHT COLUMN: Upcoming maintenance and quick access to maintenance page -->
-    <div class="col-lg-4">
-        <div class="card-panel">
-            <div class="fw-semibold mb-2">Upcoming Maintenance</div>
-            <!-- Next scheduled inspection date -->
-            <div class="text-muted mb-1">Next inspection due Nov 15 2025</div>
-            <!-- Button to open the maintenance page -->
-            <a asp-controller="Maintenance" asp-action="Index" class="btn btn-green w-100 d-inline-flex align-items-center justify-content-center gap-2 mt-2">
-                <i class="bi bi-wrench-adjustable"></i> Open Maintenance
-            </a>
+    <!-- RIGHT COLUMN -->
+    <div class="col-lg-3">
+        <!-- CHANGED: Current Status card -> Pricing card -->
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-2">Pricing</div>
+            <div style="font-size:16px;">
+                <div>
+                    <div class="medium-label">Asset Value:</div>
+                    <div class="fw-semibold">@Model.EquipmentValue.ToString("C")</div>
+                </div>
+                <br/>
+                <div>
+                    <div class="medium-label">Asset Daily Rate:</div>
+                    <div class="fw-semibold">@DailyRate.ToString("C")</div>
+                </div>
+                <br />
+                <div>
+                    <div class="medium-label">Asset Security Fees:</div>
+                    <div class="fw-semibold">@SecurityFee.ToString("C")</div>
+                </div>
+                <br />
+                <div>
+                    <div class="medium-label">Asset Damage Fees:</div>
+                    <div class="fw-semibold">@DamageFee.ToString("C")</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        // Enable row click and keyboard navigation for rental history table
-        document.querySelectorAll('tr.row-link').forEach(tr=>{
-          tr.onclick=()=>location.href=tr.dataset.href;
-          tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')tr.click();}
-        });
-    </script>
-}

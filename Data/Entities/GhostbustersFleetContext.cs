@@ -25,17 +25,20 @@ public partial class GhostbustersFleetContext : DbContext
 
     public virtual DbSet<Rental> Rentals { get; set; }
 
-    public virtual DbSet<RentedEquipment> RentedEquipment { get; set; }
+    public virtual DbSet<RentedEquipment> RentedEquipments { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)=> optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=GhostbustersFleet;Trusted_Connection=True;MultipleActiveResultSets=true");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=GhostbustersFleet;Trusted_Connection=True;MultipleActiveResultSets=true");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.Property(e => e.CustomerId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CustomerCode).HasDefaultValueSql("('CT-'+right('0000'+CONVERT([varchar](4),NEXT VALUE FOR [Seq_CustomerCode]),(4)))");
         });
 
         modelBuilder.Entity<Employee>(entity =>
@@ -51,6 +54,7 @@ public partial class GhostbustersFleetContext : DbContext
         modelBuilder.Entity<MaintenanceEvent>(entity =>
         {
             entity.Property(e => e.MaintenanceEventId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.MaintenanceCode).HasDefaultValueSql("('MT-GEN-'+right('0000'+CONVERT([varchar](4),NEXT VALUE FOR [Seq_MaintenanceCode]),(4)))");
             entity.Property(e => e.OpenedAt).HasDefaultValueSql("(sysutcdatetime())");
 
             entity.HasOne(d => d.Equipment).WithMany(p => p.MaintenanceEvents)
@@ -63,6 +67,7 @@ public partial class GhostbustersFleetContext : DbContext
         modelBuilder.Entity<Rental>(entity =>
         {
             entity.Property(e => e.RentalId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.RentalCode).HasDefaultValueSql("('RT-'+right('0000'+CONVERT([varchar](4),NEXT VALUE FOR [Seq_RentalCode]),(4)))");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Rentals).HasConstraintName("FK_Rental_Customer");
         });
@@ -82,12 +87,23 @@ public partial class GhostbustersFleetContext : DbContext
 
         modelBuilder.Entity<Vehicle>(entity =>
         {
+            entity.HasIndex(e => e.LicensePlate, "UQ_Vehicle_LicensePlate")
+                .IsUnique()
+                .HasFilter("([LicensePlate] IS NOT NULL)");
+
+            entity.HasIndex(e => e.VIN, "UQ_Vehicle_VIN")
+                .IsUnique()
+                .HasFilter("([VIN] IS NOT NULL)");
+
             entity.Property(e => e.VehicleId).HasDefaultValueSql("(newid())");
 
             entity.HasOne(d => d.Equipment).WithOne(p => p.Vehicle)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vehicle_Equipment");
         });
+        modelBuilder.HasSequence<int>("Seq_CustomerCode");
+        modelBuilder.HasSequence<int>("Seq_MaintenanceCode");
+        modelBuilder.HasSequence<int>("Seq_RentalCode");
 
         OnModelCreatingPartial(modelBuilder);
     }

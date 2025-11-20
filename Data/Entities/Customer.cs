@@ -8,10 +8,15 @@ namespace Fleet_Management_App.Data.Entities;
 
 [Table("Customer")]
 [Index("CustomerPhone", Name = "IX_Customer_Phone")]
+[Index("CustomerCode", Name = "UQ_Customer_Code", IsUnique = true)]
 public partial class Customer
 {
     [Key]
     public Guid CustomerId { get; set; }
+
+    [StringLength(32)]
+    [Unicode(false)]
+    public string CustomerCode { get; set; } = null!;
 
     [StringLength(200)]
     public string CustomerName { get; set; } = null!;

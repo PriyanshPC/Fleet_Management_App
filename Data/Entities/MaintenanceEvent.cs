@@ -12,9 +12,13 @@ public partial class MaintenanceEvent
     [Key]
     public Guid MaintenanceEventId { get; set; }
 
+    [StringLength(32)]
+    [Unicode(false)]
+    public string MaintenanceCode { get; set; } = null!;
+
     public Guid EquipmentId { get; set; }
 
-    public Guid? RentalId { get; set; }
+    public Guid RentalId { get; set; }
 
     public DateOnly LastServiceDate { get; set; }
 

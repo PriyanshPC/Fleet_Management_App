@@ -29,7 +29,7 @@ namespace Fleet_Management_App.Controllers
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login", "Auth");
+            return Redirect("~/Auth/Login");
         }
     }
 }

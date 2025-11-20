@@ -12,6 +12,10 @@ public partial class Rental
     [Key]
     public Guid RentalId { get; set; }
 
+    [StringLength(32)]
+    [Unicode(false)]
+    public string RentalCode { get; set; } = null!;
+
     public Guid? CustomerId { get; set; }
 
     public DateOnly StartDate { get; set; }

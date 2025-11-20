@@ -8,8 +8,6 @@ namespace Fleet_Management_App.Data.Entities;
 
 [Table("Vehicle")]
 [Index("EquipmentId", Name = "UQ_Vehicle_EquipmentId", IsUnique = true)]
-[Index("LicensePlate", Name = "UQ_Vehicle_LicensePlate", IsUnique = true)]
-[Index("VIN", Name = "UQ_Vehicle_VIN", IsUnique = true)]
 public partial class Vehicle
 {
     [Key]

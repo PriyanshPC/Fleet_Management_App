@@ -38,7 +38,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Default route -> Login page (since you don’t have HomeController)
+// Default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");

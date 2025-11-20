@@ -1,4 +1,6 @@
-﻿namespace Fleet_Management_App.Models
+﻿using System.Collections.Generic;
+
+namespace Fleet_Management_App.Models
 {
     /// <summary>
     /// Represents key performance indicators for the dashboard.
@@ -8,66 +10,68 @@
         /// <summary>Total number of equipment items in the fleet.</summary>
         public int TotalEquipment { get; set; }
 
-        /// <summary>Number of rentals currently active.</summary>
+        /// <summary>Number of rentals currently checked out (on rent).</summary>
         public int ActiveRentals { get; set; }
 
-        /// <summary>Number of equipment items pending maintenance.</summary>
+        /// <summary>Number of equipment items with open maintenance.</summary>
         public int PendingMaintenance { get; set; }
 
-        /// <summary>Number of fleet vehicles or items currently available.</summary>
+        /// <summary>Number of equipment items currently available.</summary>
         public int FleetAvailable { get; set; }
 
-        /// <summary>Percentage of fleet available (0-100).</summary>
+        /// <summary>Percentage of fleet that is available.</summary>
         public int FleetAvailablePct { get; set; }
 
-        /// <summary>Number of equipment items added to the fleet this week.</summary>
+        // The following are kept for future use, but not shown in the UI now
         public int AddedThisWeek { get; set; }
-
-        /// <summary>Change in active rentals today (positive or negative delta).</summary>
         public int ActiveRentalsTodayDelta { get; set; }
-
-        /// <summary>Change in pending maintenance items (positive or negative delta).</summary>
         public int PendingMaintDelta { get; set; }
     }
 
     /// <summary>
-    /// Represents the availability of equipment by category.
+    /// Represents availability of equipment for a specific category.
     /// </summary>
     public class AvailabilityByCategory
     {
-        /// <summary>Name of the equipment category.</summary>
-        public string Category { get; set; } = "";
+        /// <summary>Category name (e.g., PPE, Vehicles, Drones).</summary>
+        public string Category { get; set; } = string.Empty;
 
-        /// <summary>Number of available items in this category.</summary>
+        /// <summary>Number of equipment items available in this category.</summary>
         public int Available { get; set; }
     }
 
     /// <summary>
-    /// Represents a row of data for an active rental displayed on the dashboard.
+    /// Represents a single row in the scheduled/upcoming rentals table.
     /// </summary>
     public class ActiveRentalRow
     {
-        /// <summary>Unique identifier for the rental.</summary>
-        public string RentalId { get; set; } = "";
+        /// <summary>Rental code from the Rental table (e.g., RT-1234).</summary>
+        public string RentalCode { get; set; } = string.Empty;
 
-        /// <summary>Name of the client renting the equipment.</summary>
-        public string Client { get; set; } = "";
+        /// <summary>Client name (or internal team name).</summary>
+        public string Client { get; set; } = string.Empty;
 
-        /// <summary>List of items included in the rental.</summary>
-        public string Items { get; set; } = "";
+        /// <summary>Notes for the rental.</summary>
+        public string Notes { get; set; } = string.Empty;
 
-        /// <summary>Date when the rental started (string format).</summary>
-        public string OutDate { get; set; } = "";
+        /// <summary>Formatted start date (e.g., Nov 19).</summary>
+        public string OutDate { get; set; } = string.Empty;
 
-        /// <summary>Date when the rental is due (string format).</summary>
-        public string DueDate { get; set; } = "";
+        /// <summary>Formatted end date (e.g., Nov 22).</summary>
+        public string DueDate { get; set; } = string.Empty;
 
-        /// <summary>Status of the rental (e.g., On Rent, Due Soon, On Track, Overdue).</summary>
-        public string Status { get; set; } = "";
+        /// <summary>
+        /// Status label for UI: for this dashboard section it will be "Scheduled".
+        /// (Kept flexible if you later want variants.)
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        /// <summary>Scope: "Internal" vs "External" (for modal details).</summary>
+        public string Scope { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// ViewModel for the dashboard, aggregating KPIs, availability, maintenance, and active rentals.
+    /// View model for the main fleet dashboard.
     /// </summary>
     public class DashboardViewModel
     {
@@ -80,7 +84,7 @@
         /// <summary>Maintenance status donut chart data: [ok, scheduled, urgent].</summary>
         public List<int> MaintDonut { get; set; } = new();
 
-        /// <summary>List of currently active rentals.</summary>
+        /// <summary>Scheduled rentals for today and upcoming.</summary>
         public List<ActiveRentalRow> ActiveRentals { get; set; } = new();
     }
 }

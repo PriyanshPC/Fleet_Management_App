@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fleet_Management_App.Data.Entities;
 
-[Index("Username", Name = "UQ__Employee__536C85E4B7BAE1D7", IsUnique = true)]
+[Table("Employee")]
+[Index("Username", Name = "UQ_Employee_Username", IsUnique = true)]
 public partial class Employee
 {
     [Key]
