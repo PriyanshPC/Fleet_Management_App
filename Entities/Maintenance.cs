@@ -4,13 +4,15 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
-[Table("MaintenanceEvent")]
-public partial class MaintenanceEvent
+[Table("Maintenance")]
+[Index("MaintenanceCode", Name = "UQ_Maintenance_Code", IsUnique = true)]
+[Index("EquipmentId", Name = "UQ_Maintenance_Equipment", IsUnique = true)]
+public partial class Maintenance
 {
     [Key]
-    public Guid MaintenanceEventId { get; set; }
+    public Guid MaintenanceId { get; set; }
 
     [StringLength(32)]
     [Unicode(false)]
@@ -18,31 +20,32 @@ public partial class MaintenanceEvent
 
     public Guid EquipmentId { get; set; }
 
-    public Guid RentalId { get; set; }
+    public Guid? RentalId { get; set; }
 
     public DateOnly LastServiceDate { get; set; }
 
-    public DateOnly? NextServiceDue { get; set; }
-
     [StringLength(20)]
-    public string EventStatus { get; set; } = null!;
+    public string Status { get; set; } = null!;
 
     [Precision(0)]
-    public DateTime OpenedAt { get; set; }
+    public DateTime OpenDate { get; set; }
 
     [Precision(0)]
-    public DateTime? ClosedAt { get; set; }
+    public DateTime? CloseDate { get; set; }
 
     [StringLength(20)]
-    public string? MaintenanceOutcome { get; set; }
+    public string? Outcome { get; set; }
+
+    [StringLength(200)]
+    public string? Technician { get; set; }
 
     public string? Notes { get; set; }
 
     [ForeignKey("EquipmentId")]
-    [InverseProperty("MaintenanceEvents")]
+    [InverseProperty("Maintenance")]
     public virtual Equipment Equipment { get; set; } = null!;
 
     [ForeignKey("RentalId")]
-    [InverseProperty("MaintenanceEvents")]
+    [InverseProperty("Maintenances")]
     public virtual Rental? Rental { get; set; }
 }

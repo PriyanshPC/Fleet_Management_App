@@ -4,9 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 [Table("RentedEquipment")]
+[Index("RentalId", "EquipmentId", Name = "UQ_RentedEquipment_Rental_Equipment", IsUnique = true)]
 public partial class RentedEquipment
 {
     [Key]
@@ -15,15 +16,6 @@ public partial class RentedEquipment
     public Guid RentalId { get; set; }
 
     public Guid EquipmentId { get; set; }
-
-    [Column(TypeName = "decimal(10, 2)")]
-    public decimal EquipmentDailyRate { get; set; }
-
-    [Column(TypeName = "decimal(10, 2)")]
-    public decimal EquipmentSecurityFee { get; set; }
-
-    [Column(TypeName = "decimal(10, 2)")]
-    public decimal EquipmentDamageFee { get; set; }
 
     [ForeignKey("EquipmentId")]
     [InverseProperty("RentedEquipments")]

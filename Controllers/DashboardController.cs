@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Fleet_Management_App.Data.Entities;
+using Fleet_Management_App.Entities;
 using Fleet_Management_App.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -70,7 +70,7 @@ namespace Fleet_Management_App.Controllers
                 equipments = rental.RentedEquipments.Select(re => new
                 {
                     code = re.Equipment.EquipmentCode,
-                    name = re.Equipment.EquipmentName,
+                    //name = re.Equipment.EquipmentName,
                     category = re.Equipment.EquipmentCategory,
                     type = re.Equipment.EquipmentType
                 }).ToList()
@@ -97,7 +97,7 @@ namespace Fleet_Management_App.Controllers
                 r.EndDate >= today);
 
             // Open maintenance events.
-            var pendingMaintenance = _context.MaintenanceEvents.Count(m => m.EventStatus == "Open");
+            var pendingMaintenance = _context.Maintenances.Count(m => m.Status == "Open");
 
             // Simple availability based on EquipmentAvailability flag.
             var fleetAvailable = _context.Equipment.Count(e => e.EquipmentAvailability == "Available");
@@ -141,16 +141,10 @@ namespace Fleet_Management_App.Controllers
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            var openMaint = _context.MaintenanceEvents
-                .Where(m => m.EventStatus == "Open");
+            var openMaint = _context.Maintenances
+                .Where(m => m.Status == "Open");
 
-            var scheduled = openMaint.Count(m =>
-                m.NextServiceDue != null && m.NextServiceDue >= today);
-
-            var urgent = openMaint.Count(m =>
-                m.NextServiceDue != null && m.NextServiceDue < today);
-
-            // "OK" = equipment with no open maintenance event.
+                // "OK" = equipment with no open maintenance event.
             var equipmentIdsWithOpenMaint = openMaint
                 .Select(m => m.EquipmentId)
                 .Distinct()
@@ -159,7 +153,7 @@ namespace Fleet_Management_App.Controllers
             var ok = _context.Equipment
                 .Count(e => !equipmentIdsWithOpenMaint.Contains(e.EquipmentId));
 
-            return new List<int> { ok, scheduled, urgent };
+            return new List<int> { ok};
         }
 
         /// <summary>

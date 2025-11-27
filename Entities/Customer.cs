@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 [Table("Customer")]
 [Index("CustomerPhone", Name = "IX_Customer_Phone")]
@@ -31,6 +31,12 @@ public partial class Customer
 
     [StringLength(50)]
     public string? CustomerPhone { get; set; }
+
+    [StringLength(50)]
+    public string? Username { get; set; }
+
+    [StringLength(200)]
+    public string? Password { get; set; }
 
     [InverseProperty("Customer")]
     public virtual ICollection<Rental> Rentals { get; set; } = new List<Rental>();

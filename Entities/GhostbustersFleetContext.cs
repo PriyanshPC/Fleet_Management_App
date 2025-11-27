@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 public partial class GhostbustersFleetContext : DbContext
 {
@@ -21,24 +21,26 @@ public partial class GhostbustersFleetContext : DbContext
 
     public virtual DbSet<Equipment> Equipment { get; set; }
 
-    public virtual DbSet<MaintenanceEvent> MaintenanceEvents { get; set; }
+    public virtual DbSet<Maintenance> Maintenances { get; set; }
 
     public virtual DbSet<Rental> Rentals { get; set; }
 
     public virtual DbSet<RentedEquipment> RentedEquipments { get; set; }
 
-    public virtual DbSet<Vehicle> Vehicles { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=GhostbustersFleet;Trusted_Connection=True;MultipleActiveResultSets=true");
+        => optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=GhostbustersFleet;Trusted_Connection=True;MultipleActiveResultSets=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Customer>(entity =>
         {
+            entity.HasIndex(e => e.Username, "UQ_Customer_Username")
+                .IsUnique()
+                .HasFilter("([Username] IS NOT NULL)");
+
             entity.Property(e => e.CustomerId).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.CustomerCode).HasDefaultValueSql("('CT-'+right('0000'+CONVERT([varchar](4),NEXT VALUE FOR [Seq_CustomerCode]),(4)))");
+            entity.Property(e => e.CustomerCode).HasDefaultValueSql("('CT-'+right('000'+CONVERT([varchar](3),NEXT VALUE FOR [Seq_CustomerCode]),(3)))");
         });
 
         modelBuilder.Entity<Employee>(entity =>
@@ -48,20 +50,23 @@ public partial class GhostbustersFleetContext : DbContext
 
         modelBuilder.Entity<Equipment>(entity =>
         {
+            entity.HasIndex(e => e.EquipmentTrackingId, "UQ_Equipment_TrackingId")
+                .IsUnique()
+                .HasFilter("([EquipmentTrackingId] IS NOT NULL)");
+
             entity.Property(e => e.EquipmentId).HasDefaultValueSql("(newid())");
         });
 
-        modelBuilder.Entity<MaintenanceEvent>(entity =>
+        modelBuilder.Entity<Maintenance>(entity =>
         {
-            entity.Property(e => e.MaintenanceEventId).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.MaintenanceCode).HasDefaultValueSql("('MT-GEN-'+right('0000'+CONVERT([varchar](4),NEXT VALUE FOR [Seq_MaintenanceCode]),(4)))");
-            entity.Property(e => e.OpenedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.MaintenanceId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.OpenDate).HasDefaultValueSql("(sysutcdatetime())");
 
-            entity.HasOne(d => d.Equipment).WithMany(p => p.MaintenanceEvents)
+            entity.HasOne(d => d.Equipment).WithOne(p => p.Maintenance)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MaintenanceEvent_Equipment");
+                .HasConstraintName("FK_Maintenance_Equipment");
 
-            entity.HasOne(d => d.Rental).WithMany(p => p.MaintenanceEvents).HasConstraintName("FK_MaintenanceEvent_Rental");
+            entity.HasOne(d => d.Rental).WithMany(p => p.Maintenances).HasConstraintName("FK_Maintenance_Rental");
         });
 
         modelBuilder.Entity<Rental>(entity =>
@@ -83,23 +88,6 @@ public partial class GhostbustersFleetContext : DbContext
             entity.HasOne(d => d.Rental).WithMany(p => p.RentedEquipments)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RentedEquipment_Rental");
-        });
-
-        modelBuilder.Entity<Vehicle>(entity =>
-        {
-            entity.HasIndex(e => e.LicensePlate, "UQ_Vehicle_LicensePlate")
-                .IsUnique()
-                .HasFilter("([LicensePlate] IS NOT NULL)");
-
-            entity.HasIndex(e => e.VIN, "UQ_Vehicle_VIN")
-                .IsUnique()
-                .HasFilter("([VIN] IS NOT NULL)");
-
-            entity.Property(e => e.VehicleId).HasDefaultValueSql("(newid())");
-
-            entity.HasOne(d => d.Equipment).WithOne(p => p.Vehicle)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Vehicle_Equipment");
         });
         modelBuilder.HasSequence<int>("Seq_CustomerCode");
         modelBuilder.HasSequence<int>("Seq_MaintenanceCode");

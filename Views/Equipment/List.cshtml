@@ -1,122 +1,371 @@
 ﻿@using System.Linq
-@using Fleet_Management_App.Data.Entities
+@using Fleet_Management_App.Entities
 @model IEnumerable<Equipment>
 
 @{
     ViewData["Title"] = "Equipment – List";
 
-    var categoryOptions = Model
-        .Select(e => e.EquipmentCategory)
+    // Decide percentage of the equipment value to use as daily rate.
+    decimal GetRatePercent(decimal value)
+    {
+        if (value >= 80000m) return 0.015m; // 1.5%
+        if (value >= 50000m) return 0.020m; // 2.0%
+        if (value >= 20000m) return 0.030m; // 3.0%
+        if (value >= 10000m) return 0.040m; // 4.0%
+        return 0.050m;                      // 5.0%
+    }
+
+    // Group all physical units by Category + Type (one row per type)
+    var grouped = Model
+        .GroupBy(e => new { e.EquipmentCategory, e.EquipmentType })
+        .Select(g =>
+        {
+            var firstCode = g
+                .OrderBy(x => x.EquipmentCode)
+                .Select(x => x.EquipmentCode)
+                .FirstOrDefault() ?? string.Empty;
+
+            var shortCode = firstCode;
+            var lastDash = shortCode.LastIndexOf('-');
+            if (lastDash > 0)
+            {
+                shortCode = shortCode.Substring(0, lastDash);
+            }
+
+            var baseValue = g.Average(x => x.EquipmentValue);
+            var ratePercent = GetRatePercent(baseValue);
+            var dailyRate = baseValue * ratePercent;
+
+            return new
+            {
+                Category = g.Key.EquipmentCategory,
+                Type = g.Key.EquipmentType,
+                FirstCode = firstCode,
+                ShortCode = shortCode,
+                Description = g
+                    .Where(x => !string.IsNullOrWhiteSpace(x.EquipmentDescription))
+                    .Select(x => x.EquipmentDescription)
+                    .FirstOrDefault() ?? string.Empty,
+                AvailableCount = g.Count(x => x.EquipmentAvailability == "Available"),
+                TotalCount = g.Count(),
+                BaseValue = baseValue,
+                DailyRate = dailyRate
+            };
+        })
+        .OrderBy(x => x.Category)
+        .ThenBy(x => x.Type)
+        .ToList();
+
+    var categoryOptions = grouped
+        .Select(e => e.Category)
         .Distinct()
         .OrderBy(c => c)
         .ToList();
 
-    // Matches the enum values in the DB design
-    var statusOptions = new[] { "All", "Available", "UnderMaintenance", "OutForRental", "Damaged" };
+    // Availability stats per category for the bar "graph"
+    var availabilityByCategory = Model
+        .GroupBy(e => e.EquipmentCategory)
+        .Select(g =>
+        {
+            var available = g.Count(x => x.EquipmentAvailability == "Available");
+            var maintenance = g.Count(x => x.EquipmentAvailability == "UnderMaintenance");
+            // Anything not available or under maintenance is treated as unavailable
+            var unavailable = g.Count() - available - maintenance;
+
+            var total = available + maintenance + unavailable;
+            // Avoid division by zero, but there should always be equipment
+            var totalSafe = total == 0 ? 1 : total;
+
+            return new
+            {
+                Category = g.Key,
+                Available = available,
+                Maintenance = maintenance,
+                Unavailable = unavailable,
+                Total = totalSafe,
+                AvailablePct = (double)available / totalSafe * 100.0,
+                MaintenancePct = (double)maintenance / totalSafe * 100.0,
+                UnavailablePct = (double)unavailable / totalSafe * 100.0
+            };
+        })
+        .OrderBy(x => x.Category)
+        .ToList();
 }
 
-<!-- Page header: displays the equipment section title and description -->
+<style>
+    /* Local-only styling for the overview; does not change global layout */
+    .availability-overview-card {
+        margin-bottom: 1rem;
+    }
+
+    .availability-overview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .availability-overview-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .availability-toggle-btn {
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .availability-overview-body {
+        margin-top: 0.25rem;
+    }
+
+    .availability-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .availability-row-label {
+        min-width: 150px;
+        font-size: 14px;
+        color: #e5e7eb;
+    }
+
+    .availability-bar-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .availability-bar {
+        flex: 1;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        display: flex;
+        background-color: #111827;
+    }
+
+    .availability-segment {
+        height: 100%;
+    }
+
+        .availability-segment.available {
+            background-color: #10b981; /* green */
+        }
+
+        .availability-segment.maintenance {
+            background-color: #facc15; /* yellow */
+        }
+
+        .availability-segment.unavailable {
+            background-color: #ef4444; /* red */
+        }
+
+    .availability-counts {
+        font-size: 12px;
+        color: #9ca3af;
+        white-space: nowrap;
+    }
+
+    .availability-legend {
+        display: flex;
+        gap: 1rem;
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 0.35rem;
+    }
+
+        .availability-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+    .availability-legend-box {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+    }
+
+    .results-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .results-title {
+        font-weight: 600;
+        font-size: 18px; /* slightly larger as requested */
+    }
+
+    .results-tools {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 14px;
+    }
+
+    .results-filter-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .results-filter-select {
+        min-width: 160px;
+    }
+
+    .results-filter-clear {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: #6b7280;
+        font-size: 28px;
+        padding: 0 2px;
+    }
+
+        .results-filter-clear:hover {
+            color: #e5e7eb;
+        }
+</style>
+
+<!-- Page header -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Equipment</h2>
-        <div class="kicker">Browse and manage all assets in your fleet.</div>
+        <div class="kicker">Browse equipment types, availability, and pricing.</div>
     </div>
 </div>
 
-<!-- Filters card -->
-<div class="card-panel mb-3">
-    <form class="row g-4 align-items-end">
-        <div class="col-md-2">
-            <label class="form-label small-label" for="q">Search</label>
-            <input id="q" class="form-control" placeholder="Search by ID, name, type…" />
+<!-- Availability overview "graph" card -->
+<div class="card-panel availability-overview-card" id="availabilityOverviewCard">
+    <div class="availability-overview-header">
+        <div class="availability-overview-title">
+            Availability by Category
         </div>
-        <div class="col-md-2">
-            <label class="form-label small-label" for="category">Category</label>
-            <select id="category" class="form-select">
-                <option>All</option>
-                @foreach (var c in categoryOptions)
-                {
-                    <option>@c</option>
-                }
-            </select>
+        <button type="button"
+                id="availabilityToggle"
+                class="availability-toggle-btn"
+                aria-label="Toggle availability overview">
+            ▲
+        </button>
+    </div>
+
+    <div class="availability-overview-body" id="availabilityOverviewBody">
+        @foreach (var c in availabilityByCategory)
+        {
+            <div class="availability-row">
+                <div class="availability-row-label">@c.Category</div>
+                <div class="availability-bar-wrapper">
+                    <div class="availability-bar">
+                        @if (c.AvailablePct > 0)
+                        {
+                            <div class="availability-segment available"
+                                 style="width:@c.AvailablePct%"></div>
+                        }
+                        @if (c.MaintenancePct > 0)
+                        {
+                            <div class="availability-segment maintenance"
+                                 style="width:@c.MaintenancePct%"></div>
+                        }
+                        @if (c.UnavailablePct > 0)
+                        {
+                            <div class="availability-segment unavailable"
+                                 style="width:@c.UnavailablePct%"></div>
+                        }
+                    </div>
+                    <div class="availability-counts">
+                        A: @c.Available&nbsp;|&nbsp;M: @c.Maintenance&nbsp;|&nbsp;U: @c.Unavailable
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="availability-legend">
+            <span>
+                <span class="availability-legend-box" style="background-color:#10b981;"></span>
+                Available
+            </span>
+            <span>
+                <span class="availability-legend-box" style="background-color:#facc15;"></span>
+                Maintenance
+            </span>
+            <span>
+                <span class="availability-legend-box" style="background-color:#ef4444;"></span>
+                Unavailable
+            </span>
         </div>
-        <div class="col-md-2">
-            <label class="form-label small-label" for="status">Availability</label>
-            <select id="status" class="form-select">
-                @foreach (var s in statusOptions)
-                {
-                    <option value="@s">@s</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small-label mb-0 me-2" for="sortBy">Sort</label>
-            <select id="sortBy" class="form-select form-select-sm">
-                <option value="">None</option>
-                <option value="name:asc">Name ↑</option>
-                <option value="name:desc">Name ↓</option>
-                <option value="category:asc">Category ↑</option>
-                <option value="category:desc">Category ↓</option>
-                <option value="type:asc">Type ↑</option>
-                <option value="type:desc">Type ↓</option>
-            </select>
-        </div>
-        <div class="col-md-2 d-grid">
-            <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
-        </div>
-    </form>
+    </div>
 </div>
 
-<!-- Results table: displays filtered equipment list -->
+<!-- Results table: grouped equipment list -->
 <div class="card-panel">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="fw-semibold">Results</div>
-        <div class="text-muted" id="resultCount" style="font-size:13px;">—</div>
+    <div class="results-header-row">
+        <div class="results-title">Results</div>
+
+        <div class="results-tools">
+            <div class="results-filter-wrapper">
+                <select id="categoryFilter"
+                        class="form-select form-select-sm results-filter-select">
+                    <option value="All">All Categories</option>
+                    @foreach (var c in categoryOptions)
+                    {
+                        <option>@c</option>
+                    }
+                </select>
+                <button type="button"
+                        id="clearCategoryFilter"
+                        class="results-filter-clear"
+                        title="Clear category filter"
+                        aria-label="Clear category filter">
+                    <b>×</b>
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="table-responsive">
         <table class="table-darkish" id="equipTable">
             <thead>
                 <tr>
-                    <th>Asset ID</th>
-                    <th>Name</th>
+                    <th>Code</th>
                     <th>Category</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th class="text-end">Value</th>
+                    <th>Name (Type)</th>
+                    <!-- Reduce gap between description and availability by constraining widths -->
+                    <th style="width:46%;">Description</th>
+                    <th class="text-end" style="width:8%;">Available</th>
+                    <th class="text-end" style="width:10%;">Daily Rate</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var e in Model)
+                @foreach (var e in grouped)
                 {
-                    var statusClass = e.EquipmentAvailability switch
-                    {
-                        "Available" => "pill-green",
-                        "OutForRental" => "pill-blue",
-                        "UnderMaintenance" => "pill-amber",
-                        "Damaged" => "pill-red",
-                        _ => "pill-gray"
-                    };
-
                     <tr class="row-link"
                         tabindex="0"
-                        data-category="@e.EquipmentCategory"
-                        data-status="@e.EquipmentAvailability"
-                        data-name="@e.EquipmentName"
-                        data-code="@e.EquipmentCode"
-                        data-type="@e.EquipmentType"
-                        data-href="@Url.Action("Details", "Equipment", new { id = e.EquipmentCode })">
-                        <td>@e.EquipmentCode</td>
-                        <td>@e.EquipmentName</td>
-                        <td>@e.EquipmentCategory</td>
-                        <td>@e.EquipmentType</td>
-                        <td>
-                            <span class="pill @statusClass">
-                                @e.EquipmentAvailability
-                            </span>
+                        data-category="@e.Category"
+                        data-type="@e.Type"
+                        data-name="@e.Type"
+                        data-code="@e.FirstCode"
+                        data-href="@Url.Action("Details", "Equipment", new { id = e.FirstCode })">
+                        <td>@e.ShortCode</td>
+                        <td>@e.Category</td>
+                        <td>@e.Type</td>
+                        <td>@e.Description</td>
+                        <td class="text-end"
+                            title="@($"{e.AvailableCount} of {e.TotalCount} units available")">
+                            @e.AvailableCount
                         </td>
                         <td class="text-end">
-                            @e.EquipmentValue.ToString("C")
+                            @e.DailyRate.ToString("C2")
                         </td>
                     </tr>
                 }
@@ -127,127 +376,85 @@
 
 @section Scripts {
     <script>
-        (function () {
+        (() => {
             const table = document.getElementById('equipTable');
             if (!table) return;
 
-                    const rows = Array.from(table.querySelectorAll('tbody tr'));
-                    const inputQ = document.getElementById('q');
-                    const selectCategory = document.getElementById('category');
-                    const selectStatus = document.getElementById('status');
-                    const selectSort = document.getElementById('sortBy');
-                    const clearBtn = document.getElementById('clearFilters');
-                    const resultCount = document.getElementById('resultCount');
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const selectCategory = document.getElementById('categoryFilter');
+            const clearCategory = document.getElementById('clearCategoryFilter');
+            const resultCount = document.getElementById('resultCount');
 
-                function applyFilters() {
-                    const q = (inputQ.value || '').toLowerCase().trim();
-                    const cat = selectCategory.value;
-                    const status = selectStatus.value;
-                    const sortValue = selectSort ? selectSort.value : '';
-                    let visible = 0;
-                    const visibleRows = [];
+            // Apply category filter
+            function applyFilters() {
+                const categoryValue = selectCategory ? selectCategory.value : 'All';
+                let visible = 0;
 
+                rows.forEach(row => {
+                    const rowCategory = row.getAttribute('data-category') || '';
+                    const matchesCategory =
+                        categoryValue === 'All' || rowCategory === categoryValue;
 
-                    rows.forEach(row => {
-                        const name = (row.dataset.name || '').toLowerCase();
-                        const code = (row.dataset.code || '').toLowerCase();
-                        const type = (row.dataset.type || '').toLowerCase();
-                        const rowCat = row.dataset.category;
-                        const rowStatus = row.dataset.status;
+                    if (matchesCategory) {
+                        row.style.display = '';
+                        visible++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
 
-                    const matchesText =
-                        !q ||
-                        name.includes(q) ||
-                        code.includes(q) ||
-                        type.includes(q);
-
-                    const matchesCat = cat === 'All' || rowCat === cat;
-                    const matchesStatus = status === 'All' || rowStatus === status;
-
-                            const show = matchesText && matchesCat && matchesStatus;
-
-        row.style.display = show ? '' : 'none';
-        if (show) {
-            visible++;
-            visibleRows.push(row);
-        }
-        });
-
-        // Apply sorting to the visible rows only
-        if (sortValue && visibleRows.length > 1) {
-            const getCellText = (row, index) =>
-                (row.cells[index]?.textContent || '').trim().toLowerCase();
-
-            const compare = (a, b, index, direction) => {
-                const va = getCellText(a, index);
-                const vb = getCellText(b, index);
-                if (va < vb) return direction === 'asc' ? -1 : 1;
-                if (va > vb) return direction === 'asc' ? 1 : -1;
-                return 0;
-            };
-
-            const [field, direction] = sortValue.split(':');
-
-            visibleRows.sort((a, b) => {
-                switch (field) {
-                    case 'name':
-                        // Name is the 2nd column (index 1)
-                        return compare(a, b, 1, direction);
-                    case 'category':
-                        // Category is the 3rd column (index 2)
-                        return compare(a, b, 2, direction);
-                    case 'type':
-                        // Type is the 4th column (index 3)
-                        return compare(a, b, 3, direction);
-                    default:
-                        return 0;
+                if (resultCount) {
+                    resultCount.textContent =
+                        `${visible} result${visible === 1 ? '' : 's'}`;
                 }
-            });
-
-            const tbody = table.querySelector('tbody');
-            visibleRows.forEach(row => tbody.appendChild(row));
-        }
-
-        if (resultCount) {
-            resultCount.textContent = `${visible} result${visible === 1 ? '' : 's'}`;
-        }
             }
 
+            // Make table rows clickable
             function wireRowLinks() {
                 rows.forEach(row => {
-                    const href = row.dataset.href;
+                    const href = row.getAttribute('data-href');
                     if (!href) return;
 
                     row.addEventListener('click', () => {
                         window.location.href = href;
                     });
 
-                    row.addEventListener('keydown', e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
+                    row.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                            ev.preventDefault();
                             window.location.href = href;
                         }
                     });
                 });
             }
 
-                    if (inputQ) inputQ.addEventListener('input', applyFilters);
-        if (selectCategory) selectCategory.addEventListener('change', applyFilters);
-        if (selectStatus) selectStatus.addEventListener('change', applyFilters);
-        if (selectSort) selectSort.addEventListener('change', applyFilters);
+            if (selectCategory) {
+                selectCategory.addEventListener('change', applyFilters);
+            }
 
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                if (inputQ) inputQ.value = '';
-                if (selectCategory) selectCategory.value = 'All';
-                if (selectStatus) selectStatus.value = 'All';
-                if (selectSort) selectSort.value = '';
-                applyFilters();
-            });
-        }
+            if (clearCategory) {
+                clearCategory.addEventListener('click', () => {
+                    if (selectCategory) {
+                        selectCategory.value = 'All';
+                    }
+                    applyFilters();
+                });
+            }
 
-        wireRowLinks();
-        applyFilters();
+            // Availability overview collapse toggle
+            const availabilityToggle = document.getElementById('availabilityToggle');
+            const availabilityBody = document.getElementById('availabilityOverviewBody');
+
+            if (availabilityToggle && availabilityBody) {
+                availabilityToggle.addEventListener('click', () => {
+                    const isHidden = availabilityBody.style.display === 'none';
+                    availabilityBody.style.display = isHidden ? '' : 'none';
+                    availabilityToggle.textContent = isHidden ? '▲' : '▼';
+                });
+            }
+
+            wireRowLinks();
+            applyFilters();
         })();
     </script>
 }

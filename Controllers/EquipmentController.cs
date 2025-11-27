@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Fleet_Management_App.Data.Entities;
+using Fleet_Management_App.Entities;
+using Fleet_Management_App.Models;   // ⬅️ add this
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,18 +27,13 @@ namespace Fleet_Management_App.Controllers
         {
             var equipment = await _context.Equipment
                 .OrderBy(e => e.EquipmentCategory)
-                .ThenBy(e => e.EquipmentName)
+                .ThenBy(e => e.EquipmentType)
                 .ToListAsync();
 
             return View(equipment);
         }
 
-        /// <summary>
-        /// Displays details for a specific equipment asset, including related
-        /// vehicle, rental history, and maintenance events.
-        /// Uses EquipmentCode as the user-facing ID in the URL.
-        /// </summary>
-        /// <param //name="id">EquipmentCode (e.g., "VEH-001").</param>
+        /// <param name="id">EquipmentCode (e.g., "EQ-PUP-001").</param>
         /// <returns>Details view or 404 if not found.</returns>
         public async Task<IActionResult> Details(string id)
         {
@@ -46,12 +42,9 @@ namespace Fleet_Management_App.Controllers
                 return NotFound();
             }
 
+            // Load the primary equipment record by its unique code
             var equipment = await _context.Equipment
-                .Include(e => e.Vehicle)
-                .Include(e => e.RentedEquipments)
-                    .ThenInclude(re => re.Rental)
-                        .ThenInclude(r => r.Customer)
-                .Include(e => e.MaintenanceEvents)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.EquipmentCode == id);
 
             if (equipment == null)
@@ -59,7 +52,23 @@ namespace Fleet_Management_App.Controllers
                 return NotFound();
             }
 
-            return View(equipment);
+            // Load all units that share the same category and type so that the
+            // details page can show per-unit availability for this equipment family.
+            var unitsOfType = await _context.Equipment
+                .AsNoTracking()
+                .Where(e =>
+                    e.EquipmentCategory == equipment.EquipmentCategory &&
+                    e.EquipmentType == equipment.EquipmentType)
+                .OrderBy(e => e.EquipmentCode)
+                .ToListAsync();
+
+            var viewModel = new EquipmentDetailsViewModel
+            {
+                Equipment = equipment,
+                UnitsOfType = unitsOfType
+            };
+
+            return View(viewModel);
         }
     }
 }

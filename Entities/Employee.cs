@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 [Table("Employee")]
 [Index("Username", Name = "UQ_Employee_Username", IsUnique = true)]

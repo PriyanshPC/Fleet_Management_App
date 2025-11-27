@@ -1,37 +1,52 @@
-﻿﻿@using System.Linq
-@using Fleet_Management_App.Data.Entities
-@model Equipment
+﻿@using System.Linq
+@using Fleet_Management_App.Entities
+@using Fleet_Management_App.Models
+@model EquipmentDetailsViewModel
 
 @{
-    ViewData["Title"] = $"Equipment Details • {Model.EquipmentCode}";
+    var eq = Model.Equipment;
 
-    string availabilityClass = Model.EquipmentAvailability switch
+    // Use type as the "name" in the browser title
+    ViewData["Title"] = $"Equipment Details • {eq.EquipmentType}";
+
+    decimal GetRatePercent(decimal value)
     {
-        "Available" => "pill-green",
-        "OutForRental" => "pill-blue",
-        "UnderMaintenance" => "pill-amber",
-        "Damaged" => "pill-red",
-        _ => "pill-gray"
-    };
+        if (value >= 80000m) return 0.015m; // 1.5%
+        if (value >= 50000m) return 0.020m; // 2.0%
+        if (value >= 20000m) return 0.030m; // 3.0%
+        if (value >= 10000m) return 0.040m; // 4.0%
+        return 0.050m;                      // 5.0%
+    }
 
-    decimal DailyRate = @Model.EquipmentValue * 0.015m;
-    decimal SecurityFee = Model.EquipmentValue * 0.10m;
-    decimal DamageFee = Model.EquipmentValue * 0.25m;
+    var ratePercent = GetRatePercent(eq.EquipmentValue);
+    decimal DailyRate = eq.EquipmentValue * ratePercent;
+    decimal SecurityFee = eq.EquipmentValue * 0.10m;
+    decimal DamageFee = eq.EquipmentValue * 0.25m;
 
-    var latestRentedEquipment = Model.RentedEquipments
-        ?.Where(re => re.Rental != null)
-        .OrderByDescending(re => re.Rental!.StartDate)
-        .FirstOrDefault();
+    // Short type code from this unit (e.g., EQ-PUP from EQ-PUP-001)
+    string typeCode = eq.EquipmentCode ?? string.Empty;
+    var lastDash = typeCode.LastIndexOf('-');
+    if (lastDash > 0)
+    {
+        typeCode = typeCode.Substring(0, lastDash);
+    }
+
+    var units = Model.UnitsOfType
+        .OrderBy(u => u.EquipmentCode)
+        .ToList();
+
+    var availableCount = units.Count(u => u.EquipmentAvailability == "Available");
 }
 
-<!-- Page header: shows title, description, and back navigation -->
+<!-- Page header -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Equipment Details</h2>
-        <div class="kicker">View technical information, rental history, and maintenance logs.</div>
+        <div class="kicker">
+            Type overview, pricing, and live availability for this equipment family.
+        </div>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <!-- Button to return to equipment list -->
         <a class="btn btn-secondary" asp-controller="Equipment" asp-action="List">
             <i class="bi bi-arrow-left"></i> Back to List
         </a>
@@ -39,70 +54,90 @@
 </div>
 
 <div class="row g-3">
-    <!-- LEFT COLUMN: Main equipment details, rental history, and maintenance log -->
+    <!-- LEFT COLUMN: Equipment information + units of this type -->
     <div class="col-lg-9">
 
-        <!-- Asset Information Card -->
+        <!-- Equipment Information Card (now includes pricing) -->
         <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Asset Information</div>
+            <div class="fw-semibold mb-2">Equipment Information</div>
+
             <div class="d-flex flex-wrap gap-5">
                 <div>
-                    <div class="small-label">Asset ID</div>
-                    <div class="fw-semibold">@Model.EquipmentCode</div>
+                    <div class="small-label">Type Code</div>
+                    <div class="fw-semibold">@typeCode</div>
                 </div>
-                <div>
-                    <div class="small-label">Name</div>
-                    <div class="fw-semibold">@Model.EquipmentName</div>
-                </div>
+
                 <div>
                     <div class="small-label">Category</div>
-                    <div class="fw-semibold">@Model.EquipmentCategory</div>
+                    <div class="fw-semibold">@eq.EquipmentCategory</div>
                 </div>
+
                 <div>
                     <div class="small-label">Type</div>
-                    <div class="fw-semibold">@Model.EquipmentType</div>
+                    <div class="fw-semibold">@eq.EquipmentType</div>
                 </div>
+
                 <div>
-                    <div class="small-label">Tracking ID</div>
-                    <div class="fw-semibold">
-                        @(string.IsNullOrWhiteSpace(Model.EquipmentTrackingId) ? "—" : Model.EquipmentTrackingId)
-                    </div>
-                </div>
-                <div>
-                    <div class="small-label">Status</div>
-                    <span class="pill @availabilityClass">@Model.EquipmentAvailability</span>
+                    <div class="small-label">Available Equipments</div>
+                    <div class="fw-semibold">@availableCount</div>
                 </div>
             </div>
+
             <hr class="dropdown-divider" />
-            <!-- CHANGED: Value removed, Description added here -->
-            <div class="text-muted" style="font-size:13px;">
-                <span class="me-3">
-                    <strong>Description:</strong>
-                    @(string.IsNullOrWhiteSpace(Model.EquipmentDescription)
-                                        ? "No description provided."
-                                        : Model.EquipmentDescription)
-                </span>
-                @if (Model.Vehicle != null)
-                {
-                    <span class="me-3">
-                        <strong>Vehicle:</strong> @Model.Vehicle.Year @Model.Vehicle.Make @Model.Vehicle.Model
-                    </span>
-                    @if (!string.IsNullOrWhiteSpace(Model.Vehicle.LicensePlate))
-                    {
-                        <span class="me-3">
-                            <strong>Plate:</strong> @Model.Vehicle.LicensePlate
-                        </span>
-                    }
-                }
+
+            <!-- Description -->
+            <div class="mb-2" style="font-size:13px;">
+                <div class="small-label mb-1">Description</div>
+                <div class="text-muted">
+                    @(!string.IsNullOrWhiteSpace(eq.EquipmentDescription)
+                                        ? eq.EquipmentDescription
+                                        : "No description has been added for this equipment type yet.")
+                </div>
+            </div>
+
+            <hr class="dropdown-divider" />
+
+            <!-- Pricing (moved into the same card) -->
+            <div>
+                <div class="fw-semibold mb-2">Pricing</div>
+                <div class="d-flex flex-wrap gap-4" style="font-size:14px;">
+                    <div>
+                        <div class="medium-label">Equipment Value</div>
+                        <div class="fw-semibold">@eq.EquipmentValue.ToString("C")</div>
+                    </div>
+
+                    <div>
+                        <div class="medium-label">
+                            Daily Rate
+                            <span class="text-muted" style="font-size:11px;">
+                                (@((ratePercent * 100m).ToString("0.#"))%)
+                            </span>
+                        </div>
+                        <div class="fw-semibold">@DailyRate.ToString("C")</div>
+                    </div>
+
+                    <div>
+                        <div class="medium-label">Security Fee</div>
+                        <div class="fw-semibold">@SecurityFee.ToString("C")</div>
+                    </div>
+
+                    <div>
+                        <div class="medium-label">Damage Fee</div>
+                        <div class="fw-semibold">@DamageFee.ToString("C")</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Rental History Card -->
+        <!-- Units in this equipment type -->
         <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Rental History</div>
-            @if (Model.RentedEquipments == null || Model.RentedEquipments.Count == 0)
+            <div class="fw-semibold mb-2">Units in this Equipment Type</div>
+
+            @if (units == null || !units.Any())
             {
-                <div class="text-muted" style="font-size:13px;">No rentals recorded for this asset yet.</div>
+                <div class="text-muted" style="font-size:13px;">
+                    No units have been registered for this equipment type yet.
+                </div>
             }
             else
             {
@@ -110,90 +145,35 @@
                     <table class="table-darkish">
                         <thead>
                             <tr>
-                                <!-- CHANGED: Rental ID -> Rental Code -->
-                                <th>Rental Code</th>
-                                <th>Client</th>
-                                <th>Out</th>
-                                <th>Due</th>
+                                <th>Equipment ID</th>
+                                <th>Tracking ID</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- CHANGED: Only past 5 rentals -->
-                            @foreach (var re in Model.RentedEquipments.OrderByDescending(re => re.Rental!.StartDate).Take(5))
+                            @foreach (var u in units)
                             {
-                                var rental = re.Rental;
-                                if (rental == null)
+                                string unitAvailabilityClass = u.EquipmentAvailability switch
                                 {
-                                    continue;
-                                }
-
-                                string pillClass = rental.Status switch
-                                {
-                                    "CheckedOut" => "pill-green",
-                                    "Reserved" => "pill-amber",
-                                    "Draft" => "pill-blue",
-                                    "Returned" => "pill-gray",
-                                    "Closed" => "pill-gray",
+                                    "Available" => "pill-green",
+                                    "OutForRental" => "pill-blue",
+                                    "UnderMaintenance" => "pill-amber",
+                                    "Damaged" => "pill-red",
                                     _ => "pill-gray"
                                 };
 
                                 <tr>
-                                    <!-- CHANGED: show RentalCode instead of RentalId -->
-                                    <td>@rental.RentalCode</td>
-                                    <td>@(rental.Customer?.CustomerName ?? "Internal")</td>
-                                    <td>@rental.StartDate.ToString("yyyy-MM-dd")</td>
-                                    <td>@rental.EndDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@u.EquipmentCode</td>
                                     <td>
-                                        <!-- Status already shown as pill -->
-                                        <span class="pill @pillClass">@rental.Status</span>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-
-        <!-- Maintenance Log Card (Past 5) -->
-        <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Maintenance Log</div>
-            @if (Model.MaintenanceEvents == null || Model.MaintenanceEvents.Count == 0)
-            {
-                <div class="text-muted" style="font-size:13px;">No maintenance events recorded for this asset yet.</div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table-darkish">
-                        <thead>
-                            <tr>
-                                <th>Opened</th>
-                                <th>Last Service</th>
-                                <th>Next Due</th>
-                                <th>Status</th>
-                                <th>Outcome</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- CHANGED: Only past 5 maintenance events -->
-                            @foreach (var m in Model.MaintenanceEvents.OrderByDescending(m => m.OpenedAt).Take(5))
-                            {
-                                string mClass = m.EventStatus == "Open"
-                                ? "pill-amber"
-                                : "pill-green";
-
-                                <tr>
-                                    <td>@m.OpenedAt.ToString("yyyy-MM-dd")</td>
-                                    <td>@m.LastServiceDate.ToString("yyyy-MM-dd")</td>
-                                    <td>@(m.NextServiceDue.HasValue? m.NextServiceDue.Value.ToString("yyyy-MM-dd") : "—")</td>
-                                    <td>
-                                        <span class="pill @mClass">@m.EventStatus</span>
-                                    </td>
-                                    <td>@(string.IsNullOrWhiteSpace(m.MaintenanceOutcome) ? "—" : m.MaintenanceOutcome)</td>
-                                </tr>
-                            }
+                                        @(string.IsNullOrWhiteSpace(u.EquipmentTrackingId)
+                                                                        ? "—"
+                                                                        : u.EquipmentTrackingId)
+                            </td>
+                            <td>
+                                <span class="pill @unitAvailabilityClass">@u.EquipmentAvailability</span>
+                            </td>
+                        </tr>
+                                                }
                         </tbody>
                     </table>
                 </div>
@@ -201,32 +181,8 @@
         </div>
     </div>
 
-    <!-- RIGHT COLUMN -->
+    <!-- RIGHT COLUMN: left intentionally empty to keep layout structure consistent -->
     <div class="col-lg-3">
-        <!-- CHANGED: Current Status card -> Pricing card -->
-        <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Pricing</div>
-            <div style="font-size:16px;">
-                <div>
-                    <div class="medium-label">Asset Value:</div>
-                    <div class="fw-semibold">@Model.EquipmentValue.ToString("C")</div>
-                </div>
-                <br/>
-                <div>
-                    <div class="medium-label">Asset Daily Rate:</div>
-                    <div class="fw-semibold">@DailyRate.ToString("C")</div>
-                </div>
-                <br />
-                <div>
-                    <div class="medium-label">Asset Security Fees:</div>
-                    <div class="fw-semibold">@SecurityFee.ToString("C")</div>
-                </div>
-                <br />
-                <div>
-                    <div class="medium-label">Asset Damage Fees:</div>
-                    <div class="fw-semibold">@DamageFee.ToString("C")</div>
-                </div>
-            </div>
-        </div>
+        <!-- (no pricing card anymore) -->
     </div>
 </div>

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 [Table("Rental")]
 public partial class Rental
@@ -35,7 +35,7 @@ public partial class Rental
     public virtual Customer? Customer { get; set; }
 
     [InverseProperty("Rental")]
-    public virtual ICollection<MaintenanceEvent> MaintenanceEvents { get; set; } = new List<MaintenanceEvent>();
+    public virtual ICollection<Maintenance> Maintenances { get; set; } = new List<Maintenance>();
 
     [InverseProperty("Rental")]
     public virtual ICollection<RentedEquipment> RentedEquipments { get; set; } = new List<RentedEquipment>();

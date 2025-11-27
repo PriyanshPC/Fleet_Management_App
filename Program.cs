@@ -1,4 +1,4 @@
-using Fleet_Management_App.Data.Entities;
+using Fleet_Management_App.Entities;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 // MVC
 builder.Services.AddControllersWithViews();
 
-// Register EF Core DbContext (connection is configured in OnConfiguring)
+//Register EF Core DbContext (connection is configured in OnConfiguring)
 builder.Services.AddDbContext<GhostbustersFleetContext>();
 
 // Cookie-based authentication

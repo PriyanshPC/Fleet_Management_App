@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fleet_Management_App.Data.Entities;
+namespace Fleet_Management_App.Entities;
 
 [Index("EquipmentCode", Name = "UQ_Equipment_EquipmentCode", IsUnique = true)]
 public partial class Equipment
@@ -15,9 +15,6 @@ public partial class Equipment
     [StringLength(32)]
     [Unicode(false)]
     public string EquipmentCode { get; set; } = null!;
-
-    [StringLength(200)]
-    public string EquipmentName { get; set; } = null!;
 
     public string? EquipmentDescription { get; set; }
 
@@ -37,11 +34,8 @@ public partial class Equipment
     public string EquipmentAvailability { get; set; } = null!;
 
     [InverseProperty("Equipment")]
-    public virtual ICollection<MaintenanceEvent> MaintenanceEvents { get; set; } = new List<MaintenanceEvent>();
+    public virtual Maintenance? Maintenance { get; set; }
 
     [InverseProperty("Equipment")]
     public virtual ICollection<RentedEquipment> RentedEquipments { get; set; } = new List<RentedEquipment>();
-
-    [InverseProperty("Equipment")]
-    public virtual Vehicle? Vehicle { get; set; }
 }
