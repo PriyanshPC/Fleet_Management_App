@@ -1,9 +1,10 @@
-﻿@{
-    // Set the page title for the maintenance view
+﻿@model Fleet_Management_App.Models.MaintenanceIndexViewModel
+
+@{
     ViewData["Title"] = "Maintenance";
 }
 
-<!-- Page header: displays maintenance section title and description -->
+<!-- Page header -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Maintenance</h2>
@@ -12,126 +13,469 @@
 </div>
 
 <div class="row g-3">
-    <!-- LEFT COLUMN: lists current and completed maintenance tickets -->
+    <!-- LEFT COLUMN: current & completed tickets (tabbed) -->
     <div class="col-lg-8">
-        <!-- Current Tickets Card: shows tickets that are in progress or scheduled -->
-        <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Current Tickets</div>
-            <div class="table-responsive">
+        <div class="card-panel h-100 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold">Maintenance Tickets</div>
+
+                <!-- pill-style toggle, similar feel to other filters -->
+                <div class="btn-group btn-group-sm" role="group" aria-label="Ticket tabs">
+                    <button type="button"
+                            id="tab-current"
+                            class="btn btn-outline-light active"
+                            aria-pressed="true">
+                        Current
+                    </button>
+                    <button type="button"
+                            id="tab-completed"
+                            class="btn btn-outline-light"
+                            aria-pressed="false">
+                        Completed
+                    </button>
+                </div>
+            </div>
+
+            <!-- CURRENT TICKETS TABLE -->
+            <div id="current-table-wrapper" class="flex-grow-1">
                 <table class="table-darkish">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
-                            <th>Ticket</th>
-                            <th>Asset ID</th>
-                            <th>Issue</th>
-                            <th>Technician</th>
-                            <th>Status</th>
+                            <th scope="col">Ticket Code</th>
+                            <th scope="col">Equipment ID (Code)</th>
+                            <th scope="col">Equipment Name (Type)</th>
+                            <th scope="col">Date Opened</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Example current maintenance tickets -->
-                        <tr>
-                            <td>MT-301</td>
-                            <td>VEH-002</td>
-                            <td>Engine light diagnostic</td>
-                            <td>Sam P.</td>
-                            <td><span class="pill pill-amber">In Progress</span></td>
-                        </tr>
-                        <tr>
-                            <td>MT-302</td>
-                            <td>DRN-101</td>
-                            <td>Propeller damage</td>
-                            <td>Rita K.</td>
-                            <td><span class="pill pill-blue">Scheduled</span></td>
-                        </tr>
+                        @if (Model.CurrentTickets.Any())
+                        {
+                            foreach (var t in Model.CurrentTickets.OrderByDescending(x => x.OpenDate))
+                            {
+                                <tr class="ticket-row" data-table="current" data-maint-id="@t.MaintenanceId">
+                                    <td>@t.TicketCode</td>
+                                    <td>@t.EquipmentCode</td>
+                                    <td>@t.EquipmentType</td>
+                                    <td>@t.OpenDate.ToString("yyyy-MM-dd")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-muted small">No open maintenance tickets.</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
-        </div>
 
-        <!-- Completed Tickets Card: shows tickets that have been resolved -->
-        <div class="card-panel">
-            <div class="fw-semibold mb-2">Completed Tickets</div>
-            <div class="table-responsive">
+            <!-- COMPLETED TICKETS TABLE -->
+            <div id="completed-table-wrapper" class="flex-grow-1 d-none">
                 <table class="table-darkish">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
-                            <th>Ticket</th>
-                            <th>Asset ID</th>
-                            <th>Issue</th>
-                            <th>Date</th>
-                            <th>Technician</th>
-                            <th>Status</th>
+                            <th scope="col">Ticket Code</th>
+                            <th scope="col">Equipment ID (Code)</th>
+                            <th scope="col">Equipment Name (Type)</th>
+                            <th scope="col">Closed Date</th>
+                            <th scope="col">Technician</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Example completed maintenance tickets -->
-                        <tr>
-                            <td>MT-211</td>
-                            <td>VEH-001</td>
-                            <td>Oil change</td>
-                            <td>Sep 05 2025</td>
-                            <td>Sam P.</td>
-                            <td><span class="pill pill-green">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>MT-210</td>
-                            <td>CAM-REDK-0034</td>
-                            <td>Sensor cleaning</td>
-                            <td>Aug 20 2025</td>
-                            <td>Rita K.</td>
-                            <td><span class="pill pill-green">Completed</span></td>
-                        </tr>
+                        @if (Model.CompletedTickets.Any())
+                        {
+                            foreach (var t in Model.CompletedTickets.OrderByDescending(x => x.CloseDate ?? x.OpenDate))
+                            {
+                                <tr class="ticket-row" data-table="completed" data-maint-id="@t.MaintenanceId">
+                                    <td>@t.TicketCode</td>
+                                    <td>@t.EquipmentCode</td>
+                                    <td>@t.EquipmentType</td>
+                                    <td>@(t.CloseDate?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(t.Technician) ? "-" : t.Technician)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-muted small">No completed maintenance tickets.</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT COLUMN: form to add a new maintenance record -->
-    <div class="col-lg-4">
+    <!-- RIGHT COLUMN: Add Maintenance Record panel -->
+    <div class="col-lg-4 " >
         <div class="card-panel">
             <div class="fw-semibold mb-2">Add Maintenance Record</div>
-            <!-- Maintenance record form: allows users to submit new tickets -->
-            <form id="maintForm" class="vstack gap-2">
-                <div>
-                    <label class="form-label small-label">Asset ID</label>
-                    <input id="mAsset" class="form-control" placeholder="e.g., VEH-002" required />
+
+            @if (Model.SelectedTicket == null)
+            {
+                <div class="text-muted small">
+                    Select an open maintenance ticket from the left to view its details and complete the record.
                 </div>
-                <div>
-                    <label class="form-label small-label">Issue Description</label>
-                    <textarea id="mIssue" class="form-control" rows="2" required></textarea>
+            }
+            else
+            {
+                <!-- STATIC DETAILS -->
+                <div id="static-details">
+                    <div class="mb-2 d-flex justify-content-between gap-3">
+                        <div>
+                            <div class="text-muted small">Equipment ID (Code)</div>
+                            <div id="static-equipment-code" class="fw-semibold">@Model.SelectedTicket.EquipmentCode</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Opened Date</div>
+                            <div id="static-open-date" class="fw-semibold">@Model.SelectedTicket.OpenDate.ToString("yyyy-MM-dd")</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Equipment Description</div>
+                        <div id="static-equipment-description">
+                            @Model.SelectedTicket.EquipmentDescription
+                        </div>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between gap-3">
+                        <div>
+                            <div class="text-muted small">Last Rental ID (Code)</div>
+                            <div id="static-last-rental">@(!string.IsNullOrWhiteSpace(Model.SelectedTicket.LastRentalCode) ? Model.SelectedTicket.LastRentalCode : "-")</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Last Technician Name</div>
+                            <div id="static-last-tech">@(!string.IsNullOrWhiteSpace(Model.SelectedTicket.LastTechnicianName) ? Model.SelectedTicket.LastTechnicianName : "-")</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-muted small">Last Maintenance Notes</div>
+                        <div id="static-last-notes">
+                            @(!string.IsNullOrWhiteSpace(Model.SelectedTicket.LastNotes) ? Model.SelectedTicket.LastNotes : "-")
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label small-label">Technician</label>
-                    <input id="mTech" class="form-control" placeholder="Technician Name" />
-                </div>
-                <div>
-                    <label class="form-label small-label">Status</label>
-                    <select id="mStatus" class="form-select">
-                        <option>Scheduled</option>
-                        <option>In Progress</option>
-                        <option>Completed</option>
-                    </select>
-                </div>
-                <!-- Submit button for adding a new maintenance record -->
-                <button type="submit" class="btn btn-green w-100 mt-2"><i class="bi bi-plus-lg"></i> Add Record</button>
-            </form>
+
+                <!-- DYNAMIC DETAILS (form fields) -->
+                <form id="maintForm" method="post" asp-action="Complete" class="vstack gap-3 mt-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="field-maintenance-id" name="MaintenanceId" value="@Model.SelectedTicket.MaintenanceId" />
+                    <input type="hidden" id="field-ticket-code" name="TicketCode" value="@Model.SelectedTicket.TicketCode" />
+                    <input type="hidden" id="field-equipment-code" name="EquipmentCode" value="@Model.SelectedTicket.EquipmentCode" />
+
+                    <div>
+                        <div class="form-label small-label mb-1">Status</div>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="Outcome" id="statusWorking" value="Working" required />
+                                <label class="form-check-label" for="statusWorking">
+                                    Working
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="Outcome" id="statusDamaged" value="Damaged" required />
+                                <label class="form-check-label" for="statusDamaged">
+                                    Damaged
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="field-tech" class="form-label small-label">Technician Name</label>
+                        <select id="field-tech" name="Technician" class="form-select form-select-sm" required>
+                            <option value="">Select technician</option>
+                            <option>Alex Carter</option>
+                            <option>Emma Novak</option>
+                            <option>Jordan Lee</option>
+                            <option>Miguel Santos</option>
+                            <option>Priya Nair</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="field-notes" class="form-label small-label">Maintenance Notes</label>
+                        <textarea id="field-notes" name="Notes" class="form-control form-control-sm" rows="4" required></textarea>
+                    </div>
+
+                    <div>
+                        <!-- original button style & text restored -->
+                        <button type="submit" class="btn btn-green w-100 mt-2">
+                            <i class="bi bi-plus-lg"></i> Add Record
+                        </button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRMATION MODAL (dark card-style) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-panel bg-dark text-light border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Confirm Maintenance Record</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Please review the details before confirming:</p>
+                <dl class="row mb-0 small">
+                    <dt class="col-5">Ticket Code</dt>
+                    <dd class="col-7" id="confirm-ticket-code"></dd>
+
+                    <dt class="col-5">Equipment ID (Code)</dt>
+                    <dd class="col-7" id="confirm-equipment-code"></dd>
+
+                    <dt class="col-5">Opened Date</dt>
+                    <dd class="col-7" id="confirm-open-date"></dd>
+
+                    <dt class="col-5">Status</dt>
+                    <dd class="col-7" id="confirm-status"></dd>
+
+                    <dt class="col-5">Technician</dt>
+                    <dd class="col-7" id="confirm-tech"></dd>
+
+                    <dt class="col-5">Maintenance Notes</dt>
+                    <dd class="col-7" id="confirm-notes"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btn-confirm-submit" class="btn btn-outline-primary btn-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- COMPLETED TICKET DETAILS MODAL (dark card-style) -->
+<div class="modal fade" id="completedDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content card-panel bg-dark text-light border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Maintenance Ticket Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body small">
+                <dl class="row mb-0">
+                    <dt class="col-4">Ticket Code</dt>
+                    <dd class="col-8" id="detail-ticket-code"></dd>
+
+                    <dt class="col-4">Equipment ID (Code)</dt>
+                    <dd class="col-8" id="detail-equipment-code"></dd>
+
+                    <dt class="col-4">Equipment Type</dt>
+                    <dd class="col-8" id="detail-equipment-type"></dd>
+
+                    <dt class="col-4">Equipment Description</dt>
+                    <dd class="col-8" id="detail-equipment-description"></dd>
+
+                    <dt class="col-4">Status</dt>
+                    <dd class="col-8" id="detail-status"></dd>
+
+                    <dt class="col-4">Outcome</dt>
+                    <dd class="col-8" id="detail-outcome"></dd>
+
+                    <dt class="col-4">Opened Date</dt>
+                    <dd class="col-8" id="detail-open-date"></dd>
+
+                    <dt class="col-4">Closed Date</dt>
+                    <dd class="col-8" id="detail-close-date"></dd>
+
+                    <dt class="col-4">Last Rental ID (Code)</dt>
+                    <dd class="col-8" id="detail-last-rental"></dd>
+
+                    <dt class="col-4">Technician Name</dt>
+                    <dd class="col-8" id="detail-tech"></dd>
+
+                    <dt class="col-4">Maintenance Notes</dt>
+                    <dd class="col-8" id="detail-notes"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // Handle form submission for adding a maintenance record (mock implementation)
-        document.getElementById('maintForm').addEventListener('submit', e => {
-          e.preventDefault();
-          // Generate a mock ticket ID
-          const id = 'MT-' + Math.floor(300 + Math.random() * 100);
-          // Show a success message (mock only, does not persist data)
-          alert('Maintenance record ' + id + ' created (success mock).');
-          // Reset the form fields
-          e.target.reset();
-        });
+        (function () {
+            const currentTabBtn = document.getElementById('tab-current');
+            const completedTabBtn = document.getElementById('tab-completed');
+            const currentWrapper = document.getElementById('current-table-wrapper');
+            const completedWrapper = document.getElementById('completed-table-wrapper');
+
+            function setTab(active) {
+                if (!currentTabBtn || !completedTabBtn || !currentWrapper || !completedWrapper) return;
+
+                if (active === 'current') {
+                    currentTabBtn.classList.add('active');
+                    currentTabBtn.setAttribute('aria-pressed', 'true');
+
+                    completedTabBtn.classList.remove('active');
+                    completedTabBtn.setAttribute('aria-pressed', 'false');
+
+                    currentWrapper.classList.remove('d-none');
+                    completedWrapper.classList.add('d-none');
+                } else {
+                    completedTabBtn.classList.add('active');
+                    completedTabBtn.setAttribute('aria-pressed', 'true');
+
+                    currentTabBtn.classList.remove('active');
+                    currentTabBtn.setAttribute('aria-pressed', 'false');
+
+                    completedWrapper.classList.remove('d-none');
+                    currentWrapper.classList.add('d-none');
+                }
+            }
+
+            if (currentTabBtn && completedTabBtn) {
+                currentTabBtn.addEventListener('click', function () { setTab('current'); });
+                completedTabBtn.addEventListener('click', function () { setTab('completed'); });
+            }
+
+            // Default to current tab
+            setTab('current');
+
+            // Row click handlers
+            const rows = document.querySelectorAll('.ticket-row');
+            rows.forEach(function (row) {
+                row.addEventListener('click', function () {
+                    const id = row.getAttribute('data-maint-id');
+                    const tableType = row.getAttribute('data-table');
+
+                    if (!id) return;
+
+                    fetch('@Url.Action("Ticket", "Maintenance")' + '?id=' + id)
+                        .then(r => {
+                            if (!r.ok) throw new Error('Failed to load ticket');
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (tableType === 'current') {
+                                // Populate static panel + hidden fields
+                                const eqCodeEl = document.getElementById('static-equipment-code');
+                                const openDateEl = document.getElementById('static-open-date');
+                                const eqDescEl = document.getElementById('static-equipment-description');
+                                const lastRentalEl = document.getElementById('static-last-rental');
+                                const lastTechEl = document.getElementById('static-last-tech');
+                                const lastNotesEl = document.getElementById('static-last-notes');
+
+                                const idField = document.getElementById('field-maintenance-id');
+                                const ticketField = document.getElementById('field-ticket-code');
+                                const eqField = document.getElementById('field-equipment-code');
+
+                                if (eqCodeEl) eqCodeEl.textContent = data.equipmentCode || '';
+                                if (openDateEl) openDateEl.textContent = data.openedDate || '';
+                                if (eqDescEl) eqDescEl.textContent = data.equipmentDescription || '';
+                                if (lastRentalEl) lastRentalEl.textContent = data.lastRentalCode || '-';
+                                if (lastTechEl) lastTechEl.textContent = data.lastTechnicianName || '-';
+                                if (lastNotesEl) lastNotesEl.textContent = data.lastNotes || '-';
+
+                                if (idField) idField.value = data.id;
+                                if (ticketField) ticketField.value = data.ticketCode || '';
+                                if (eqField) eqField.value = data.equipmentCode || '';
+
+                                // Clear dynamic fields so the technician must re-confirm
+                                const statusWorking = document.getElementById('statusWorking');
+                                const statusDamaged = document.getElementById('statusDamaged');
+                                const techSelect = document.getElementById('field-tech');
+                                const notesArea = document.getElementById('field-notes');
+
+                                if (statusWorking) statusWorking.checked = false;
+                                if (statusDamaged) statusDamaged.checked = false;
+                                if (techSelect) techSelect.value = '';
+                                if (notesArea) notesArea.value = '';
+                            } else {
+                                // Completed ticket -> show details modal
+                                document.getElementById('detail-ticket-code').textContent = data.ticketCode || '';
+                                document.getElementById('detail-equipment-code').textContent = data.equipmentCode || '';
+                                document.getElementById('detail-equipment-type').textContent = data.equipmentType || '';
+                                document.getElementById('detail-equipment-description').textContent = data.equipmentDescription || '';
+                                document.getElementById('detail-status').textContent = data.status || '';
+                                document.getElementById('detail-outcome').textContent = data.outcome || '';
+                                document.getElementById('detail-open-date').textContent = data.openedDate || '';
+                                document.getElementById('detail-close-date').textContent = data.closedDate || '-';
+                                document.getElementById('detail-last-rental').textContent = data.lastRentalCode || '-';
+                                document.getElementById('detail-tech').textContent = data.lastTechnicianName || '-';
+                                document.getElementById('detail-notes').textContent = data.lastNotes || '-';
+
+                                const completedModalEl = document.getElementById('completedDetailsModal');
+                                if (completedModalEl && window.bootstrap) {
+                                    const modal = new bootstrap.Modal(completedModalEl);
+                                    modal.show();
+                                }
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Unable to load maintenance ticket details.');
+                        });
+                });
+            });
+
+            // Confirmation modal wiring
+            const form = document.getElementById('maintForm');
+            const confirmModalEl = document.getElementById('confirmModal');
+            let confirmModalInstance = null;
+
+            if (confirmModalEl && window.bootstrap) {
+                confirmModalInstance = new bootstrap.Modal(confirmModalEl);
+            }
+
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    // Ensure required fields have values
+                    const selectedStatus = document.querySelector('input[name="Outcome"]:checked');
+                    const tech = document.getElementById('field-tech');
+                    const notes = document.getElementById('field-notes');
+
+                    if (!selectedStatus || !tech || !tech.value || !notes || !notes.value.trim()) {
+                        alert('Please complete all required fields before submitting.');
+                        return;
+                    }
+
+                    // Populate confirmation modal
+                    document.getElementById('confirm-ticket-code').textContent =
+                        document.getElementById('field-ticket-code').value;
+                    document.getElementById('confirm-equipment-code').textContent =
+                        document.getElementById('field-equipment-code').value;
+                    document.getElementById('confirm-open-date').textContent =
+                        document.getElementById('static-open-date').textContent;
+
+                    document.getElementById('confirm-status').textContent = selectedStatus.value;
+                    document.getElementById('confirm-tech').textContent = tech.value;
+                    document.getElementById('confirm-notes').textContent = notes.value.trim();
+
+                    if (confirmModalInstance) {
+                        confirmModalInstance.show();
+                    } else if (confirmModalEl) {
+                        if (window.confirm('Confirm maintenance record submission?')) {
+                            form.submit();
+                        }
+                    }
+                });
+            }
+
+            const confirmBtn = document.getElementById('btn-confirm-submit');
+            if (confirmBtn && confirmModalEl) {
+                confirmBtn.addEventListener('click', function () {
+                    if (confirmModalInstance) {
+                        confirmModalInstance.hide();
+                    }
+                    if (form) {
+                        form.submit();
+                    }
+                });
+            }
+        })();
     </script>
 }
