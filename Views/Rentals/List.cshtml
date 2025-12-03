@@ -1,18 +1,15 @@
-﻿@model IEnumerable<Fleet_Management_App.Models.RentalListItem>
+﻿@model IEnumerable<Fleet_Management_App.Models.RentalListViewModel>
+
 @{
-    // Set the page title for display in the browser and header
     ViewData["Title"] = "Rentals – List";
 
-    // Define available status and category filter options
-    var statuses = new[] { "All", "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
-    var categories = new[] { "All", "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
+    var statuses = new[] { "All", "Reserved", "Checked Out", "Returned", "Overdue", "Closed" };
 }
 
-<!-- Page header with title and action button for creating a new rental -->
 <div class="page-head">
     <div>
         <h2 class="m-0">Rentals</h2>
-        <div class="kicker">Search, filter, and manage active & past rentals.</div>
+        <div class="kicker">Search, filter, and manage active &amp; past rentals.</div>
     </div>
     <div class="d-flex align-items-center gap-2">
         <a class="btn btn-green d-inline-flex align-items-center gap-2"
@@ -22,28 +19,18 @@
     </div>
 </div>
 
-<!-- Filter toolbar for searching and narrowing down rental results -->
 <div class="card-panel mb-3">
     <form id="filterForm" class="row g-2 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <label class="form-label small-label">Search</label>
-            <input id="q" class="form-control" placeholder="Rental ID, client, item…" />
+            <input id="q" class="form-control" placeholder="Rental ID, customer…" />
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label small-label">Status</label>
             <select id="status" class="form-select">
                 @foreach (var s in statuses)
                 {
                     <option>@s</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small-label">Category</label>
-            <select id="category" class="form-select">
-                @foreach (var c in categories)
-                {
-                    <option>@c</option>
                 }
             </select>
         </div>
@@ -61,12 +48,12 @@
     </form>
 </div>
 
-<!-- Rental results table displaying filtered rental records -->
 <div class="card-panel">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-semibold">Results</div>
-        <!-- Display the count of currently visible results -->
-        <div class="text-muted" id="resultCount" style="font-size:13px;">@Model.Count() results</div>
+        <div class="text-muted" id="resultCount" style="font-size:13px;">
+            @Model.Count() results
+        </div>
     </div>
 
     <div class="table-responsive">
@@ -74,43 +61,41 @@
             <thead>
                 <tr>
                     <th>Rental ID</th>
-                    <th>Client</th>
-                    <th>Category</th>
-                    <th>Items</th>
-                    <th>Out</th>
-                    <th>Due</th>
+                    <th>Customer</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
                     <th>Status</th>
-                    <th class="text-end">Total</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var r in Model)
                 {
-                    // Render each rental as a clickable row with details
-                    <tr class="row-link" tabindex="0" data-href="@Url.Action("Details", "Rentals")?id=@r.Id">
-                        <td>@($"#{r.Id}")</td>
-                        <td>@r.Client</td>
-                        <td>@r.Category</td>
-                        <td>@r.Items</td>
-                        <td>@r.Out.ToString("MMM dd")</td>
-                        <td>@r.Due.ToString("MMM dd")</td>
+                    var startIso = r.StartDate.ToString("yyyy-MM-dd");
+                    var endIso = r.EndDate.ToString("yyyy-MM-dd");
+
+                    <tr class="row-link"
+                        tabindex="0"
+                        data-href="@Url.Action("Details", "Rentals", new { id = r.RentalId })"
+                        data-start="@startIso"
+                        data-end="@endIso">
+                        <td>@r.RentalCode</td>
+                        <td>@r.CustomerName</td>
+                        <td>@r.StartDate.ToString("MMM dd")</td>
+                        <td>@r.EndDate.ToString("MMM dd")</td>
                         <td>
                             @{
-                                // Assign a CSS class to the status pill based on rental status
                                 var css = r.Status switch
                                 {
-                                    "On Rent" => "pill pill-blue",
-                                    "Due Soon" => "pill pill-amber",
-                                    "Overdue" => "pill pill-red",
+                                    "Reserved" => "pill pill-green",
+                                    "Checked Out" => "pill pill-blue",
                                     "Returned" => "pill pill-gray",
-                                    "Cancelled" => "pill pill-darkred",
-                                    "Scheduled" => "pill pill-green",
+                                    "Overdue" => "pill pill-red",
+                                    "Closed" => "pill pill-gray",
                                     _ => "pill"
                                 };
                             }
                             <span class="@css">@r.Status</span>
                         </td>
-                        <td class="text-end">@r.Total.ToString("C")</td>
                     </tr>
                 }
             </tbody>
@@ -120,65 +105,77 @@
 
 @section Scripts {
     <script>
-        // Make table rows clickable and keyboard accessible for navigation to rental details
-        (function attachRowLinks(){
-          document.querySelectorAll('#rentalsTable tbody tr.row-link[data-href]').forEach(tr => {
-            tr.addEventListener('click', () => location.href = tr.dataset.href);
-            tr.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
+        (function attachRowLinks() {
+            document.querySelectorAll('#rentalsTable tbody tr.row-link[data-href]').forEach(tr => {
+                tr.addEventListener('click', () => location.href = tr.dataset.href);
+                tr.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
+                });
             });
-          });
         })();
 
-        // Apply client-side filters to show/hide rental rows based on filter criteria
-        function applyFilters(){
-          const q = document.getElementById('q').value.trim().toLowerCase();
-          const s = document.getElementById('status').value;
-          const c = document.getElementById('category').value;
-          const from = document.getElementById('from').value ? new Date(document.getElementById('from').value) : null;
-          const to   = document.getElementById('to').value ? new Date(document.getElementById('to').value) : null;
+        // Use ISO dates from data attributes to avoid locale/time issues
+        function applyFilters() {
+            const q = document.getElementById('q').value.trim().toLowerCase();
+            const s = document.getElementById('status').value;
+            const fromVal = document.getElementById('from').value; // yyyy-MM-dd or ""
+            const toVal   = document.getElementById('to').value;   // yyyy-MM-dd or ""
 
-          let visible = 0;
-          document.querySelectorAll('#rentalsTable tbody tr').forEach(tr => {
-            const tds = tr.children;
-            const idTxt   = tds[0].textContent.trim().toLowerCase();
-            const client  = tds[1].textContent.trim().toLowerCase();
-            const cat     = tds[2].textContent.trim();
-            const items   = tds[3].textContent.trim().toLowerCase();
-            const outTxt  = tds[4].textContent.trim();
-            const dueTxt  = tds[5].textContent.trim();
-            const status  = tds[6].textContent.trim();
+            let visible = 0;
 
-            // Combine searchable fields for text search
-            const blob = (idTxt + " " + client + " " + items);
-            if (q && !blob.includes(q)) { tr.style.display = "none"; return; }
-            if (s !== "All" && status !== s) { tr.style.display = "none"; return; }
-            if (c !== "All" && cat !== c) { tr.style.display = "none"; return; }
+            document.querySelectorAll('#rentalsTable tbody tr').forEach(tr => {
+                const tds = tr.children;
+                const idTxt    = tds[0].textContent.trim().toLowerCase();
+                const customer = tds[1].textContent.trim().toLowerCase();
+                const statusTxt= tds[4].textContent.trim();
 
-            // Filter by date range if specified
-            const parseShort = (t) => new Date(`${t} ${new Date().getFullYear()}`);
-            const out = parseShort(outTxt), due = parseShort(dueTxt);
-            if (from && out < from) { tr.style.display = "none"; return; }
-            if (to && due > to)     { tr.style.display = "none"; return; }
+                const startIso = tr.dataset.start || ""; // yyyy-MM-dd
+                const endIso   = tr.dataset.end || "";   // yyyy-MM-dd
 
-            tr.style.display = ""; visible++;
-          });
-          // Update the result count display
-          document.getElementById('resultCount').textContent = `${visible} result${visible===1?'':'s'}`;
+                // Text search
+                const matchQ = !q || idTxt.includes(q) || customer.includes(q);
+
+                // Status filter
+                const matchStatus = (s === 'All') || (statusTxt === s);
+
+                // Date range filter – simple string comparison because all are yyyy-MM-dd
+                let matchFrom = true;
+                if (fromVal && startIso) {
+                    matchFrom = startIso >= fromVal;
+                }
+
+                let matchTo = true;
+                if (toVal && endIso) {
+                    matchTo = endIso <= toVal;
+                }
+
+                const show = matchQ && matchStatus && matchFrom && matchTo;
+
+                tr.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            document.getElementById('resultCount').textContent =
+                `${visible} result${visible === 1 ? '' : 's'}`;
         }
 
-        // Attach filter logic to filter inputs and clear button
-        ['q','status','category','from','to'].forEach(id=>{
-          document.getElementById(id).addEventListener('input', applyFilters);
-          document.getElementById(id).addEventListener('change', applyFilters);
+        ['q', 'status', 'from', 'to'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', applyFilters);
+                el.addEventListener('change', applyFilters);
+            }
         });
-        document.getElementById('clearFilters').addEventListener('click', ()=>{
-          document.getElementById('q').value='';
-          document.getElementById('status').value='All';
-          document.getElementById('category').value='All';
-          document.getElementById('from').value='';
-          document.getElementById('to').value='';
-          applyFilters();
+
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            document.getElementById('q').value = '';
+            document.getElementById('status').value = 'All';
+            document.getElementById('from').value = '';
+            document.getElementById('to').value = '';
+            applyFilters();
         });
+
+        // Initial run so the count is correct
+        applyFilters();
     </script>
 }

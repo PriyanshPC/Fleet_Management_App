@@ -1,8 +1,5 @@
 ﻿@{
-    // Set the page title and define available status and category options for the rental form
     ViewData["Title"] = "New Rental";
-    var statuses = new[] { "Scheduled", "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled" };
-    var categories = new[] { "Vehicles", "Drones", "Cameras", "Mics", "PPE", "Tools" };
 }
 
 <!-- Page header with title and navigation back to the rental list -->
@@ -18,119 +15,211 @@
     </div>
 </div>
 
-<!-- Main rental creation form -->
+<style>
+    /* Make disabled inputs look like part of the dark UI, not bright white */
+    #newRentalForm .form-control:disabled,
+    #newRentalForm .form-select:disabled {
+        background-color: #2b2f3a;
+        border-color: #3a3f4d;
+        color: #adb5bd;
+        opacity: 1; /* don't fade them out */
+    }
+
+    /* Make date-picker calendar icon white */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+</style>
+
+<!-- Main content container -->
 <form id="newRentalForm" autocomplete="off">
     <div class="row g-3">
 
-        <!-- LEFT COLUMN: Customer, schedule, items, and notes -->
+        <!-- LEFT COLUMN: Customer, rental details, notes -->
         <div class="col-lg-8">
 
-            <!-- Customer & Schedule section: collects client and rental timing details -->
+            <!-- Customer Information -->
             <div class="card-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold">Customer Information</div>
+                </div>
+
+                <input type="hidden" id="customerId" />
+
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small-label">Client Name</label>
-                        <input id="clientName" class="form-control" placeholder="Company / Person" required />
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Customer Name</label>
+                        <input id="customerName" class="form-control" placeholder="Customer Name" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label small-label">Email</label>
-                        <input id="clientEmail" type="email" class="form-control" placeholder="client@email.com" />
+                        <input id="customerEmail" type="email" class="form-control" placeholder="email@example.com" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label small-label">Phone</label>
-                        <input id="clientPhone" class="form-control" placeholder="+1 (555) 000-0000" />
+                        <!-- Numeric-only phone input -->
+                        <input id="customerPhone"
+                               type="tel"
+                               inputmode="numeric"
+                               pattern="[0-9]*"
+                               class="form-control"
+                               placeholder="10-digit phone"
+                               maxlength="10" />
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label small-label">Status</label>
-                        <select id="status" class="form-select">
-                            @foreach (var s in statuses)
-                            {
-                                <option>@s</option>
-                            }
-                        </select>
+                    <div class="col-md-8">
+                        <label class="form-label small-label">Address</label>
+                        <input id="customerAddress" class="form-control" placeholder="Customer address" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small-label">Date Out</label>
-                        <input id="dateOut" type="date" class="form-control" required />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small-label">Due Date</label>
-                        <input id="dateDue" type="date" class="form-control" required />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small-label">Category</label>
-                        <select id="category" class="form-select">
-                            @foreach (var c in categories)
-                            {
-                                <option>@c</option>
-                            }
-                        </select>
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Government ID</label>
+                        <input id="customerGovtId" class="form-control" placeholder="Govt ID" />
                     </div>
                 </div>
             </div>
 
-            <!-- Items section: allows adding, editing, and clearing rental items -->
+            <!-- Rental Details -->
             <div class="card-panel mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="fw-semibold">Items</div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold">Rental Details</div>
                     <div class="d-flex gap-2">
-                        <button type="button" id="addRow" class="btn btn-secondary"><i class="bi bi-plus-lg"></i> Add Item</button>
-                        <button type="button" id="clearRows" class="btn btn-danger"><i class="bi bi-trash3"></i> Clear</button>
+                        <!-- Buttons styled like original Items card: secondary + danger with icons -->
+                        <button type="button" id="addEquipmentBtn" class="btn btn-primary btn-sm" disabled>
+                            <i class="bi bi-plus-lg"></i> Add Equipment
+                        </button>
+                        <button type="button" id="clearEquipmentBtn" class="btn btn-danger btn-sm" disabled>
+                            <i class="bi bi-trash3"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small-label">Start Date</label>
+                        <input id="startDate"
+                               type="date"
+                               class="form-control"
+                               disabled
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small-label">Return Date</label>
+                        <input id="endDate"
+                               type="date"
+                               class="form-control"
+                               disabled
+                               min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
                     </div>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table-darkish" id="itemsTable">
+                    <table class="table-darkish align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Equipment</th>
                                 <th>Category</th>
-                                <th>Serial / Asset ID</th>
-                                <th>Qty</th>
+                                <th>Equipment</th>
+                                <th style="width: 90px;">Qty</th>
                                 <th class="text-end">Rate / Day</th>
-                                <th class="text-end">Days</th>
                                 <th class="text-end">Subtotal</th>
                                 <th></th>
                             </tr>
                         </thead>
-                        <tbody></tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="6" class="text-end text-muted">Items Total</td>
-                                <td class="text-end" id="itemsTotal">$0.00</td>
-                                <td></td>
+                        <tbody id="itemsBody">
+                            <tr class="no-items-row">
+                                <td colspan="6" class="text-center text-muted">
+                                    No Equipment Added, Click +Add Equipment to add an equipment
+                                </td>
                             </tr>
-                        </tfoot>
+                        </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Notes section: for internal instructions or comments -->
+            <!-- Rental Notes -->
             <div class="card-panel mb-3">
-                <label class="form-label small-label">Internal Notes</label>
-                <textarea id="notes" class="form-control" rows="3" placeholder="Any handling, delivery, or return instructions..."></textarea>
+                <label class="form-label small-label">Rental Notes</label>
+                <textarea id="rentalNote"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Any handling, delivery, or return instructions..."></textarea>
             </div>
 
         </div>
 
-        <!-- RIGHT COLUMN: Summary and submit button -->
+        <!-- RIGHT COLUMN: Summary + Discount + Payment -->
         <div class="col-lg-4">
 
-            <!-- Summary panel: displays calculated totals and allows discount entry -->
             <div class="card-panel">
                 <div class="fw-semibold mb-2">Summary</div>
-                <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span id="sumItems">$0.00</span></div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted">Discount</span>
-                    <input id="discount" type="number" class="form-control" style="width:120px;" value="0" min="0" step="1" />
-                </div>
-                <div class="d-flex justify-content-between"><span class="text-muted">Tax (13%)</span><span id="tax">$0.00</span></div>
-                <hr class="dropdown-divider" />
-                <div class="d-flex justify-content-between fw-semibold"><span>Total</span><span id="grandTotal">$0.00</span></div>
 
-                <!-- Submit button to create the rental -->
-                <button type="submit" class="btn btn-green w-100 mt-3 d-inline-flex align-items-center justify-content-center gap-2">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Total Items</span>
+                    <span id="summaryTotalItems">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Subtotal</span>
+                    <span id="summarySubtotal">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 align-items-center">
+                    <span class="text-muted">Discount</span>
+                    <input id="discountInput"
+                           class="form-control form-control-sm text-end"
+                           style="max-width: 120px;"
+                           value="0" />
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">HST (13%)</span>
+                    <span id="summaryTax">$0.00</span>
+                </div>
+
+                <hr class="dropdown-divider" />
+
+                <div class="d-flex justify-content-between fw-semibold mb-3">
+                    <span>Total</span>
+                    <span id="summaryGrandTotal">$0.00</span>
+                </div>
+
+                <div class="fw-semibold mb-2">Payment</div>
+
+                <div class="mb-2">
+                    <label class="form-label small-label">Name on Card</label>
+                    <input id="cardName" class="form-control" placeholder="Full name as on card" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small-label">Card Number</label>
+                    <input id="cardNumber"
+                           class="form-control"
+                           placeholder="16-digit card number"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           maxlength="16" />
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small-label">Exp (MMYY)</label>
+                        <input id="cardExp"
+                               class="form-control"
+                               placeholder="MMYY"
+                               inputmode="numeric"
+                               pattern="[0-9]*"
+                               maxlength="4" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small-label">CVV</label>
+                        <input id="cardCvv"
+                               class="form-control"
+                               type="password"
+                               placeholder="3 digits"
+                               inputmode="numeric"
+                               pattern="[0-9]*"
+                               maxlength="3" />
+                    </div>
+                </div>
+
+                <button type="submit"
+                        class="btn btn-green w-100 mt-3 d-inline-flex align-items-center justify-content-center gap-2">
                     <i class="bi bi-check2-circle"></i> Create Rental
                 </button>
             </div>
@@ -140,107 +229,675 @@
     </div>
 </form>
 
+<!-- MESSAGE MODAL (matches dark popup style from maintenance) -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-panel bg-dark text-light border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="messageModalTitle">Message</h5>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="messageModalBody" class="mb-0"></p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PAYMENT OVERLAY (Processing → Contacting Bank → Validating → Approved/Denied) -->
+<div id="paymentOverlay"
+     class="position-fixed top-0 start-0 w-100 h-100 d-none"
+     style="background: rgba(0,0,0,0.75); z-index: 2000;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="card-panel text-center p-4">
+            <div id="paymentStatusIcon" class="mb-3">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div id="paymentStatusText" class="fw-semibold">Processing...</div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        /* ---------- Helpers ---------- */
-        // Format a number as currency (USD)
-        const money = n => n.toLocaleString(undefined,{style:'currency',currency:'USD'});
-        // Calculate the number of days between two dates (inclusive)
-        function daysBetween(a, b){
-          const d1=new Date(a), d2=new Date(b);
-          return Math.max(1, Math.ceil((d2-d1)/(1000*60*60*24)));
-        }
+        (function () {
 
-        /* ---------- Items table ---------- */
-        // Reference to the items table body
-        const TBODY = document.querySelector('#itemsTable tbody');
+            // ---------- DOM references ----------
+            const form = document.getElementById('newRentalForm');
 
-        // Add a new item row to the table, optionally pre-filled
-        function addRow(pref = {}){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><input class="form-control item-name" placeholder="e.g., FX6 Camera" value="${pref.name||''}"/></td>
-            <td>
-              <select class="form-select item-cat">
-                ${['Vehicles','Drones','Cameras','Mics','PPE','Tools'].map(c=>`<option ${pref.category===c?'selected':''}>${c}</option>`).join('')}
-              </select>
-            </td>
-            <td><input class="form-control item-asset" placeholder="Asset ID" value="${pref.asset||''}"/></td>
-            <td><input type="number" class="form-control item-qty" min="1" step="1" value="${pref.qty||1}"/></td>
-            <td><input type="number" class="form-control item-rate text-end" min="0" step="0.01" value="${pref.rate||0}"/></td>
-            <td><input type="number" class="form-control item-days text-end" min="1" step="1" value="${pref.days||1}"/></td>
-            <td class="text-end item-sub">$0.00</td>
-            <td class="text-end"><button type="button" class="btn btn-danger btn-sm del-row"><i class="bi bi-x-lg"></i></button></td>
-          `;
-          TBODY.appendChild(tr);
-          bindRow(tr);
-          recalc();
-        }
+            const customerIdInput = document.getElementById('customerId');
+            const customerNameInput = document.getElementById('customerName');
+            const customerEmailInput = document.getElementById('customerEmail');
+            const customerPhoneInput = document.getElementById('customerPhone');
+            const customerAddressInput = document.getElementById('customerAddress');
+            const customerGovtIdInput = document.getElementById('customerGovtId');
 
-        // Bind input and delete events to a row for live updates and removal
-        function bindRow(tr){
-          tr.querySelectorAll('input,select').forEach(el=> el.addEventListener('input', recalc));
-          tr.querySelector('.del-row').addEventListener('click', ()=>{ tr.remove(); recalc(); });
-        }
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
 
-        // Add item row when "Add Item" button is clicked
-        document.getElementById('addRow').addEventListener('click', ()=> addRow());
-        // Clear all item rows when "Clear" button is clicked
-        document.getElementById('clearRows').addEventListener('click', ()=> { TBODY.innerHTML=''; recalc(); });
+            const addEquipmentBtn = document.getElementById('addEquipmentBtn');
+            const clearEquipmentBtn = document.getElementById('clearEquipmentBtn');
+            const itemsBody = document.getElementById('itemsBody');
 
-        // Seed the table with two example items for demonstration
-        addRow({name:'RED Komodo 6K', category:'Cameras', asset:'CAM-REDK-0034', qty:1, rate:120, days:3});
-        addRow({name:'V-Mount Battery', category:'Tools', asset:'BAT-VMT-1122', qty:2, rate:10, days:3});
+            const noteInput = document.getElementById('rentalNote');
 
-        /* ---------- Totals ---------- */
-        // Recalculate item subtotals, overall totals, tax, and grand total
-        function recalc(){
-          // If dates are set, synchronize "Days" for each item with the rental period
-          const out = document.getElementById('dateOut').value, due = document.getElementById('dateDue').value;
-          const rangeDays = (out && due) ? daysBetween(out, due) : null;
+            const totalItemsSpan = document.getElementById('summaryTotalItems');
+            const subtotalSpan = document.getElementById('summarySubtotal');
+            const discountInput = document.getElementById('discountInput');
+            const taxSpan = document.getElementById('summaryTax');
+            const totalSpan = document.getElementById('summaryGrandTotal');
 
-          let itemsTotal = 0;
-          TBODY.querySelectorAll('tr').forEach(tr=>{
-            const qty  = Number(tr.querySelector('.item-qty').value || 0);
-            const rate = Number(tr.querySelector('.item-rate').value || 0);
-            const days = rangeDays ?? Number(tr.querySelector('.item-days').value || 1);
-            tr.querySelector('.item-days').value = days; // update days field
-            const sub = qty * rate * days;
-            tr.querySelector('.item-sub').textContent = money(sub);
-            itemsTotal += sub;
-          });
+            // Payment fields
+            const cardNameInput = document.getElementById('cardName');
+            const cardNumberInput = document.getElementById('cardNumber');
+            const cardExpInput = document.getElementById('cardExp');
+            const cardCvvInput = document.getElementById('cardCvv');
 
-          // Update totals in summary and items table
-          document.getElementById('itemsTotal').textContent = money(itemsTotal);
-          document.getElementById('sumItems').textContent   = money(itemsTotal);
+            // Message modal
+            const messageModalEl = document.getElementById('messageModal');
+            const messageModalTitle = document.getElementById('messageModalTitle');
+            const messageModalBody = document.getElementById('messageModalBody');
+            let messageModalInstance = null;
+            if (messageModalEl && window.bootstrap) {
+                messageModalInstance = new bootstrap.Modal(messageModalEl);
+            }
 
-          // Calculate discount, tax, and grand total
-          const discount = Number(document.getElementById('discount').value || 0);
-          const tax = Math.round((itemsTotal - discount) * 0.13 * 100)/100;
-          const grand = itemsTotal - discount + tax;
+            function showMessage(title, body) {
+                messageModalTitle.textContent = title || 'Message';
+                messageModalBody.textContent = body || '';
+                if (messageModalInstance) {
+                    messageModalInstance.show();
+                } else {
+                    alert(body); // fallback
+                }
+            }
 
-          document.getElementById('tax').textContent       = money(Math.max(0,tax));
-          document.getElementById('grandTotal').textContent= money(Math.max(0,grand));
-        }
-        // Recalculate totals when relevant fields change
-        ['dateOut','dateDue','discount'].forEach(id=> document.getElementById(id).addEventListener('input', recalc));
+            // Payment overlay
+            const paymentOverlay = document.getElementById('paymentOverlay');
+            const paymentStatusIcon = document.getElementById('paymentStatusIcon');
+            const paymentStatusText = document.getElementById('paymentStatusText');
 
-        /* ---------- Submit (mock create) ---------- */
-        // Handle form submission: validate, mock ID, and redirect to details page
-        document.getElementById('newRentalForm').addEventListener('submit', (e)=>{
-          e.preventDefault();
+            function showPaymentOverlay() {
+                paymentOverlay.classList.remove('d-none');
+            }
 
-          // Basic validation for required fields and at least one item
-          const name = document.getElementById('clientName').value.trim();
-          const out  = document.getElementById('dateOut').value;
-          const due  = document.getElementById('dateDue').value;
-          if(!name || !out || !due || TBODY.children.length===0){
-            alert('Please fill client, dates, and add at least one item.'); return;
-          }
+            function hidePaymentOverlay() {
+                paymentOverlay.classList.add('d-none');
+                paymentStatusIcon.innerHTML =
+                    '<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>';
+                paymentStatusText.textContent = 'Processing...';
+            }
 
-          // Generate a mock rental ID and redirect to the details page
-          const id = 'R-' + Math.floor(1000 + Math.random()*9000);
-          window.location.href = '@Url.Action("Details", "Rentals")' + '?id=' + encodeURIComponent(id);
-        });
+            // ---------- State ----------
+            let equipmentCatalog = [];
+            let lastPhoneLookupDigits = '';
+
+            // ---------- Helpers ----------
+            const digitsOnly = v => (v || '').replace(/\D/g, '');
+
+            const money = n => n.toLocaleString(undefined, { style: 'currency', currency: 'CAD' });
+
+            function rentalDays() {
+                const s = startDateInput.value;
+                const e = endDateInput.value;
+                if (!s || !e) return 0;
+                const start = new Date(s);
+                const end = new Date(e);
+                const diff = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1; // inclusive
+                return Math.max(diff, 0);
+            }
+
+            function getTypeInfo(category, type) {
+                return equipmentCatalog.find(x => x.category === category && x.type === type) || null;
+            }
+
+            function showNoItemsMessage() {
+                if (!itemsBody.querySelector('.no-items-row')) {
+                    const row = document.createElement('tr');
+                    row.classList.add('no-items-row');
+                    row.innerHTML =
+                        '<td colspan="6" class="text-center text-muted">No Equipment Added, Click +Add Equipment to add an equipment</td>';
+                    itemsBody.appendChild(row);
+                }
+            }
+
+            function removeNoItemsMessage() {
+                const row = itemsBody.querySelector('.no-items-row');
+                if (row) {
+                    row.remove();
+                }
+            }
+
+            function updateRentalCardEnabled() {
+                const required = [
+                    customerNameInput,
+                    customerPhoneInput,
+                    customerAddressInput
+                ];
+                const allFilled = required.every(i => i && i.value.trim() !== '');
+
+                const enableDates = allFilled;
+
+                startDateInput.disabled = !enableDates;
+                endDateInput.disabled = !enableDates;
+
+                const enableItems =
+                    enableDates &&
+                    !!startDateInput.value &&
+                    !!endDateInput.value;
+
+                addEquipmentBtn.disabled = !enableItems;
+                clearEquipmentBtn.disabled = itemsBody.querySelectorAll('tr:not(.no-items-row)').length === 0;
+            }
+
+            function updateSummary() {
+                let totalItems = 0;
+                let subtotal = 0;
+
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    if (row.classList.contains('no-items-row')) {
+                        return;
+                    }
+
+                    const qtyInput = row.querySelector('.item-qty');
+                    const subSpan = row.querySelector('.item-subtotal');
+
+                    const qty = parseInt(qtyInput && qtyInput.value ? qtyInput.value : '0', 10);
+
+                    const rawText = subSpan && subSpan.textContent
+                        ? subSpan.textContent.replace(/[^0-9.\-]/g, '')
+                        : '0';
+
+                    const numeric = parseFloat(rawText || '0');
+
+                    totalItems += isNaN(qty) ? 0 : qty;
+                    subtotal += isNaN(numeric) ? 0 : numeric;
+                });
+
+                // Discount logic
+                let discountAmount = 0;
+                const discountRaw = (discountInput.value || '').trim();
+
+                if (discountRaw.endsWith('%')) {
+                    const pct = parseFloat(discountRaw.slice(0, -1));
+                    if (!isNaN(pct) && pct > 0) {
+                        discountAmount = subtotal * (pct / 100);
+                    }
+                } else if (discountRaw.length > 0) {
+                    const val = parseFloat(discountRaw);
+                    if (!isNaN(val) && val > 0) {
+                        discountAmount = val;
+                    }
+                }
+
+                if (discountAmount > subtotal) {
+                    discountAmount = subtotal;
+                }
+
+                const discountedSubtotal = Math.max(subtotal - discountAmount, 0);
+                const tax = discountedSubtotal * 0.13;
+                const total = discountedSubtotal + tax;
+
+                totalItemsSpan.textContent = totalItems.toString();
+                subtotalSpan.textContent = money(subtotal);
+                taxSpan.textContent = money(tax);
+                totalSpan.textContent = money(total);
+            }
+
+            function wireRow(row) {
+                const categorySelect = row.querySelector('.item-category');
+                const typeSelect = row.querySelector('.item-type');
+                const qtyInput = row.querySelector('.item-qty');
+                const rateSpan = row.querySelector('.item-rate');
+                const subtotalSpan = row.querySelector('.item-subtotal');
+                const deleteBtn = row.querySelector('.item-delete');
+
+                // Categories
+                const categories = [...new Set(equipmentCatalog.map(x => x.category))];
+                categorySelect.innerHTML =
+                    '<option value="">Select...</option>' +
+                    categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+                categorySelect.addEventListener('change', () => {
+                    const category = categorySelect.value;
+
+                    const types = equipmentCatalog.filter(x => x.category === category);
+                    typeSelect.disabled = !category;
+                    typeSelect.innerHTML =
+                        '<option value="">Select...</option>' +
+                        types.map(t => `<option value="${t.type}">${t.type}</option>`).join('');
+
+                    qtyInput.value = '';
+                    qtyInput.disabled = true;
+                    rateSpan.textContent = money(0);
+                    subtotalSpan.textContent = money(0);
+                    updateSummary();
+                });
+
+                typeSelect.addEventListener('change', () => {
+                    const info = getTypeInfo(categorySelect.value, typeSelect.value);
+                    if (info) {
+                        rateSpan.textContent = money(info.dailyRate);
+                        qtyInput.disabled = false;
+                        qtyInput.max = info.available;
+                    } else {
+                        rateSpan.textContent = money(0);
+                        qtyInput.disabled = true;
+                    }
+
+                    qtyInput.value = '';
+                    subtotalSpan.textContent = money(0);
+                    updateSummary();
+                });
+
+                qtyInput.addEventListener('input', () => {
+                    const info = getTypeInfo(categorySelect.value, typeSelect.value);
+                    if (!info) {
+                        qtyInput.value = '';
+                        subtotalSpan.textContent = money(0);
+                        updateSummary();
+                        return;
+                    }
+
+                    let qty = parseInt(qtyInput.value || '0', 10);
+                    if (qty > info.available) {
+                        qty = info.available;
+                        qtyInput.value = String(qty);
+                    } else if (qty < 0 || isNaN(qty)) {
+                        qty = 0;
+                        qtyInput.value = '';
+                    }
+
+                    const days = rentalDays();
+                    const subtotal = info.dailyRate * days * qty;
+                    subtotalSpan.textContent = money(subtotal);
+                    updateSummary();
+                });
+
+                deleteBtn.addEventListener('click', () => {
+                    row.remove();
+                    if (itemsBody.querySelectorAll('tr:not(.no-items-row)').length === 0) {
+                        showNoItemsMessage();
+                    }
+                    updateSummary();
+                    updateRentalCardEnabled();
+                });
+            }
+
+            function addEquipmentRow() {
+                if (!startDateInput.value || !endDateInput.value) {
+                    showMessage('Dates Required', 'Select Start Date and Return Date first.');
+                    return;
+                }
+
+                if (!equipmentCatalog.length) {
+                    showMessage('Equipment Loading', 'Equipment catalog is still loading. Please try again in a moment.');
+                    return;
+                }
+
+                removeNoItemsMessage();
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <select class="form-select form-select-sm item-category">
+                            <option value="">Select...</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm item-type" disabled>
+                            <option value="">Select...</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" min="1" class="form-control form-control-sm item-qty" disabled />
+                    </td>
+                    <td class="text-end">
+                        <span class="item-rate">$0.00</span>
+                    </td>
+                    <td class="text-end">
+                        <span class="item-subtotal">$0.00</span>
+                    </td>
+                    <td class="text-end">
+                        <!-- Bin icon styled as a proper outline-danger button -->
+                        <button type="button" class="btn btn-outline-danger btn-sm item-delete" title="Remove item">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                `;
+
+                itemsBody.appendChild(row);
+                wireRow(row);
+                updateRentalCardEnabled();
+            }
+
+            // Payment decision based on Stripe-style test cards:
+            // 4242 4242 4242 4242 -> approved
+            // 4000 0000 0000 0002 -> declined
+            function getPaymentDecision(cardNumberDigits) {
+                if (cardNumberDigits === '4000000000000002') {
+                    return 'declined';
+                }
+                // default + 4242... and other test cards -> approved
+                return 'approved';
+            }
+
+            function validateCardFields() {
+                const name = (cardNameInput.value || '').trim();
+                const number = digitsOnly(cardNumberInput.value);
+                const exp = digitsOnly(cardExpInput.value);
+                const cvv = digitsOnly(cardCvvInput.value);
+
+                if (!name || name.split(' ').length < 2) {
+                    showMessage('Payment Error', 'Please enter the full name on the card.');
+                    return null;
+                }
+
+                if (number.length !== 16) {
+                    showMessage('Payment Error', 'Card number must be 16 digits.');
+                    return null;
+                }
+
+                if (exp.length !== 4) {
+                    showMessage('Payment Error', 'Expiry must be 4 digits in MMYY format.');
+                    return null;
+                }
+
+                const month = parseInt(exp.substring(0, 2), 10);
+                const year = 2000 + parseInt(exp.substring(2, 4), 10);
+                if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
+                    showMessage('Payment Error', 'Expiry month must be between 01 and 12.');
+                    return null;
+                }
+
+                const now = new Date();
+                const thisMonth = now.getMonth() + 1;
+                const thisYear = now.getFullYear();
+
+                if (year < thisYear || (year === thisYear && month < thisMonth)) {
+                    showMessage('Payment Error', 'Card expiry date cannot be in the past.');
+                    return null;
+                }
+
+                if (cvv.length !== 3) {
+                    showMessage('Payment Error', 'CVV must be 3 digits.');
+                    return null;
+                }
+
+                return { name, number, exp, cvv };
+            }
+
+            function processPaymentAndCreateRental(decision, payload) {
+                showPaymentOverlay();
+
+                const stages = ['Processing', 'Contacting Bank', 'Validating Payment'];
+                let idx = 0;
+
+                function runStages() {
+                    if (idx < stages.length) {
+                        paymentStatusText.textContent = stages[idx];
+                        idx++;
+                        setTimeout(runStages, 800);
+                    } else {
+                        if (decision === 'declined') {
+                            paymentStatusIcon.innerHTML =
+                                '<i class="bi bi-x-circle-fill text-danger fs-2"></i>';
+                            paymentStatusText.textContent = 'Payment Denied';
+
+                            setTimeout(() => {
+                                hidePaymentOverlay();
+                                showMessage('Payment Denied',
+                                    'Your card was declined. Please review the card details.');
+                            }, 1200);
+
+                            return;
+                        }
+
+                        // Approved path
+                        paymentStatusIcon.innerHTML =
+                            '<i class="bi bi-check-circle-fill text-success fs-2"></i>';
+                        paymentStatusText.textContent = 'Approved';
+
+                        fetch('@Url.Action("Create", "Rentals")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        })
+                            .then(r => {
+                                if (!r.ok) {
+                                    return r.text().then(t => { throw new Error(t || 'Failed to create rental.'); });
+                                }
+                                return r.json();
+                            })
+                            .then(result => {
+                                if (result && result.detailsUrl) {
+                                    // Redirect to Details page after successful creation.
+                                    window.location.href = result.detailsUrl;
+                                } else {
+                                    hidePaymentOverlay();
+                                    showMessage('Rental Created',
+                                        'Rental was created, but no redirect URL was returned.');
+                                }
+                            })
+                            .catch(err => {
+                                hidePaymentOverlay();
+                                showMessage('Error', err.message || 'Error creating rental.');
+                            });
+                    }
+                }
+
+                runStages();
+            }
+
+            // ---------- Events ----------
+
+            // Load equipment catalog on page load
+            fetch('@Url.Action("EquipmentCatalog", "Rentals")')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => { equipmentCatalog = data || []; })
+                .catch(() => {
+                    console.warn('Could not load equipment catalog.');
+                });
+
+            // Phone: block non-numeric keypresses and handle lookup
+            customerPhoneInput.addEventListener('keypress', (e) => {
+                if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            customerPhoneInput.addEventListener('paste', (e) => {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                if (/[^0-9]/.test(text)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Phone auto-lookup (after 10 digits)
+            customerPhoneInput.addEventListener('input', () => {
+                const digits = digitsOnly(customerPhoneInput.value);
+                customerPhoneInput.value = digits; // keep field clean
+
+                if (digits.length === 10 && digits !== lastPhoneLookupDigits) {
+                    lastPhoneLookupDigits = digits;
+
+                    fetch('@Url.Action("LookupCustomer", "Rentals")' + '?phone=' + encodeURIComponent(digits))
+                        .then(r => r.ok ? r.json() : Promise.reject())
+                        .then(data => {
+                            if (data && data.found) {
+                                showMessage('Customer Found', 'Customer Found! Details populated.');
+
+                                customerIdInput.value = data.customerId || '';
+                                customerNameInput.value = data.customerName || '';
+                                customerEmailInput.value = data.customerEmail || '';
+                                customerAddressInput.value = data.customerAddress || '';
+                                customerGovtIdInput.value = data.customerGovtId || '';
+                            } else {
+                                showMessage('New Customer', 'No Customer Found, new customer will be created.');
+                                customerIdInput.value = '';
+                            }
+
+                            updateRentalCardEnabled();
+                        })
+                        .catch(() => {
+                            console.warn('Customer lookup failed.');
+                        });
+                } else if (digits.length < 10) {
+                    lastPhoneLookupDigits = '';
+                }
+
+                updateRentalCardEnabled();
+            });
+
+            customerNameInput.addEventListener('input', updateRentalCardEnabled);
+            customerAddressInput.addEventListener('input', updateRentalCardEnabled);
+
+            // Keep return date at least 1 day after start date
+            startDateInput.addEventListener('change', () => {
+                if (startDateInput.value) {
+                    const d = new Date(startDateInput.value);
+                    d.setDate(d.getDate() + 1);
+                    endDateInput.min = d.toISOString().split('T')[0];
+
+                    if (endDateInput.value && endDateInput.value < endDateInput.min) {
+                        endDateInput.value = endDateInput.min;
+                    }
+                } else {
+                    endDateInput.min = '';
+                    endDateInput.value = '';
+                }
+
+                updateRentalCardEnabled();
+                // when dates change, recompute subtotals
+                itemsBody.querySelectorAll('.item-qty').forEach(input => {
+                    input.dispatchEvent(new Event('input'));
+                });
+            });
+
+            endDateInput.addEventListener('change', () => {
+                updateRentalCardEnabled();
+                itemsBody.querySelectorAll('.item-qty').forEach(input => {
+                    input.dispatchEvent(new Event('input'));
+                });
+            });
+
+            addEquipmentBtn.addEventListener('click', addEquipmentRow);
+
+            clearEquipmentBtn.addEventListener('click', () => {
+                // clear all rows + dates
+                itemsBody.innerHTML = '';
+                showNoItemsMessage();
+                startDateInput.value = '';
+                endDateInput.value = '';
+                updateSummary();
+                updateRentalCardEnabled();
+            });
+
+            discountInput.addEventListener('input', updateSummary);
+
+            // Card inputs: numeric-only where needed
+            [cardNumberInput, cardExpInput, cardCvvInput].forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                    }
+                });
+
+                input.addEventListener('paste', (e) => {
+                    const text = (e.clipboardData || window.clipboardData).getData('text');
+                    if (/[^0-9]/.test(text)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            // Main submit → validate → simulate payment → if approved, call Create
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const days = rentalDays();
+                if (days <= 0) {
+                    showMessage('Invalid Dates', 'Return Date must be on or after the Start Date.');
+                    return;
+                }
+
+                if (!customerNameInput.value.trim()) {
+                    showMessage('Missing Info', 'Please enter the customer name.');
+                    return;
+                }
+
+                if (digitsOnly(customerPhoneInput.value).length !== 10) {
+                    showMessage('Invalid Phone', 'Phone number must be 10 digits.');
+                    return;
+                }
+
+                const rows = itemsBody.querySelectorAll('tr:not(.no-items-row)');
+                if (rows.length === 0) {
+                    showMessage('No Equipment', 'Add at least one equipment item.');
+                    return;
+                }
+
+                const items = [];
+                rows.forEach(row => {
+                    const category = row.querySelector('.item-category')?.value || '';
+                    const type = row.querySelector('.item-type')?.value || '';
+                    const qtyVal = row.querySelector('.item-qty')?.value || '0';
+                    const qty = parseInt(qtyVal, 10);
+
+                    const info = getTypeInfo(category, type);
+
+                    if (category && type && info && qty > 0) {
+                        items.push({
+                            category: category,
+                            type: type,
+                            quantity: qty,
+                            dailyRate: info.dailyRate
+                        });
+                    }
+                });
+
+                if (!items.length) {
+                    showMessage('Incomplete Rows', 'Please complete at least one valid equipment row.');
+                    return;
+                }
+
+                const cardData = validateCardFields();
+                if (!cardData) {
+                    return; // message already shown
+                }
+
+                const payload = {
+                    customerId: customerIdInput.value || null,
+                    customerName: customerNameInput.value.trim(),
+                    customerEmail: customerEmailInput.value.trim() || null,
+                    customerPhone: digitsOnly(customerPhoneInput.value),
+                    customerAddress: customerAddressInput.value.trim() || null,
+                    customerGovtId: customerGovtIdInput.value.trim() || null,
+                    startDate: startDateInput.value,
+                    endDate: endDateInput.value,
+                    note: noteInput.value.trim() || null,
+                    items: items
+                };
+
+                const decision = getPaymentDecision(cardData.number);
+                processPaymentAndCreateRental(decision, payload);
+            });
+
+            // Initial state
+            updateRentalCardEnabled();
+            updateSummary();
+            showNoItemsMessage();
+
+        })();
     </script>
 }

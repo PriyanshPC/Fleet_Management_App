@@ -1,0 +1,676 @@
+﻿@using System.Linq
+@using System.Text.Json
+@model Fleet_Management_App.Entities.Rental
+
+@{
+    ViewData["Title"] = "Edit Rental";
+
+    var status = Model.Status ?? "Reserved";
+
+    var initialItems = Model.RentedEquipments
+        .GroupBy(re => new { re.Equipment.EquipmentCategory, re.Equipment.EquipmentType })
+        .Select(g => new
+        {
+            Category = g.Key.EquipmentCategory,
+            Type = g.Key.EquipmentType,
+            Quantity = g.Count()
+        })
+        .ToList();
+
+    var initialItemsJson = JsonSerializer.Serialize(initialItems);
+    var startDateValue = Model.StartDate.ToString("yyyy-MM-dd");
+    var endDateValue = Model.EndDate.ToString("yyyy-MM-dd");
+    var customer = Model.Customer;
+}
+
+<!-- Page header -->
+<div class="page-head">
+    <div>
+        <h2 class="m-0">Edit Rental - @Model.RentalCode</h2>
+        <div class="kicker">
+            Update rental dates and equipment. Editable fields depend on the status.
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Make disabled inputs look like part of the dark UI, not bright white */
+    #editRentalForm .form-control:disabled,
+    #editRentalForm .form-select:disabled {
+        background-color: #2b2f3a;
+        border-color: #3a3f4d;
+        color: #adb5bd;
+        opacity: 1; /* don't fade them out */
+    }
+
+    /* Make date-picker calendar icon white */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+</style>
+
+
+<form asp-controller="Rentals" asp-action="Edit" method="post" id="editRentalForm" autocomplete="off">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="RentalId" id="rentalId" value="@Model.RentalId" />
+    <input type="hidden" name="Status" id="rentalStatus" value="@status" />
+
+    <div class="row g-3">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-8">
+
+            <!-- Customer Information (read-only) -->
+            <div class="card-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold">Customer Information</div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Customer Name</label>
+                        <input class="form-control" value="@customer?.CustomerName" disabled />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Email</label>
+                        <input class="form-control" value="@customer?.CustomerEmail" disabled />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Phone</label>
+                        <input class="form-control" value="@customer?.CustomerPhone" disabled />
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label small-label">Address</label>
+                        <input class="form-control" value="@customer?.CustomerAddress" disabled />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small-label">Government ID</label>
+                        <input class="form-control" value="@customer?.CustomerGovtId" disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rental Details -->
+            <div class="card-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold">
+                        Rental Details
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="addEquipmentBtn" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-plus-lg"></i> Add Equipment
+                        </button>
+                        <button type="button" id="clearEquipmentBtn" class="btn btn-danger btn-sm">
+                            <i class="bi bi-trash3"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small-label">Start Date</label>
+                        <input id="startDate"
+                               name="StartDate"
+                               type="date"
+                               class="form-control"
+                               value="@startDateValue"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small-label">End Date</label>
+                        <input id="endDate"
+                               name="EndDate"
+                               type="date"
+                               class="form-control"
+                               value="@endDateValue"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-darkish align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Equipment</th>
+                                <th style="width: 90px;">Qty</th>
+                                <th class="text-end">Rate / Day</th>
+                                <th class="text-end">Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <tr class="no-items-row">
+                                <td colspan="6" class="text-center text-muted">
+                                    No Equipment Added, Click +Add Equipment to add an equipment
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card-panel mb-3">
+                <label class="form-label small-label">Rental Notes</label>
+                <textarea id="rentalNote"
+                          name="Note"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Any handling, delivery, or return instructions...">@Model.Note</textarea>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Summary -->
+        <div class="col-lg-4">
+            <div class="card-panel">
+                <div class="fw-semibold mb-2">Summary</div>
+
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Initial Total</span>
+                    <span id="summaryInitialTotal">$0.00</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Total Items</span>
+                    <span id="summaryTotalItems">0</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Subtotal</span>
+                    <span id="summarySubtotal">$0.00</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">HST (13%)</span>
+                    <span id="summaryTax">$0.00</span>
+                </div>
+
+                <hr class="dropdown-divider" />
+
+                <div class="d-flex justify-content-between fw-semibold mb-1">
+                    <span>Total</span>
+                    <span id="summaryTotal">$0.00</span>
+                </div>
+
+                <div class="d-flex justify-content-between fw-semibold mb-3">
+                    <span>Balance</span>
+                    <span id="summaryBalance">$0.00</span>
+                </div>
+
+                <button type="submit"
+                        class="btn btn-green w-100 mt-3 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-check2-circle"></i> Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Payment-style overlay -->
+<div id="paymentOverlay"
+     class="position-fixed top-0 start-0 w-100 h-100 d-none"
+     style="background: rgba(0,0,0,0.75); z-index: 2000;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="card-panel text-center p-4">
+            <div id="paymentStatusIcon" class="mb-3">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div id="paymentStatusText" class="fw-semibold">Processing...</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const existingItems = @Html.Raw(initialItemsJson);
+            const rentalStatus = document.getElementById('rentalStatus').value;
+
+            const form = document.getElementById('editRentalForm');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const itemsBody = document.getElementById('itemsBody');
+            const addEquipmentBtn = document.getElementById('addEquipmentBtn');
+            const clearEquipmentBtn = document.getElementById('clearEquipmentBtn');
+            const rentalNoteInput = document.getElementById('rentalNote');
+
+            const totalItemsSpan = document.getElementById('summaryTotalItems');
+            const subtotalSpan = document.getElementById('summarySubtotal');
+            const taxSpan = document.getElementById('summaryTax');
+            const totalSpan = document.getElementById('summaryTotal');
+            const initialTotalSpan = document.getElementById('summaryInitialTotal');
+            const balanceSpan = document.getElementById('summaryBalance');
+
+            const paymentOverlay = document.getElementById('paymentOverlay');
+            const paymentStatusIcon = document.getElementById('paymentStatusIcon');
+            const paymentStatusText = document.getElementById('paymentStatusText');
+
+            let equipmentCatalog = [];
+            let initialTotalValue = null;
+            let submitting = false;
+            let nextIndex = 0;
+
+            const money = n => {
+                const v = parseFloat(n || 0);
+                return v.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+            };
+
+            const rentalDays = () => {
+                if (!startDateInput.value || !endDateInput.value) return 0;
+                const s = new Date(startDateInput.value);
+                const e = new Date(endDateInput.value);
+                const diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
+                return diff > 0 ? diff : 0;
+            };
+
+            function getTypeInfo(category, type) {
+                return equipmentCatalog.find(x => x.category === category && x.type === type) || null;
+            }
+
+            function showNoItemsMessage() {
+                if (!itemsBody.querySelector('.no-items-row')) {
+                    const row = document.createElement('tr');
+                    row.classList.add('no-items-row');
+                    row.innerHTML = `
+                        <td colspan="6" class="text-center text-muted">
+                            No Equipment Added, Click +Add Equipment to add an equipment
+                        </td>`;
+                    itemsBody.appendChild(row);
+                }
+            }
+
+            function removeNoItemsMessage() {
+                const row = itemsBody.querySelector('.no-items-row');
+                if (row) row.remove();
+            }
+
+            function applyStatusRules() {
+                const isReserved = rentalStatus === 'Reserved';
+                const isCheckedOut = rentalStatus === 'CheckedOut';
+
+                startDateInput.disabled = !isReserved;
+                endDateInput.disabled = !(isReserved || isCheckedOut);
+
+                const canEditItems = isReserved;
+                const hasRows = itemsBody.querySelectorAll('tr:not(.no-items-row)').length > 0;
+
+                addEquipmentBtn.disabled = !canEditItems;
+                clearEquipmentBtn.disabled = !canEditItems || !hasRows;
+
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    if (row.classList.contains('no-items-row')) return;
+                    row.querySelectorAll('.item-category, .item-type, .item-qty, .item-delete').forEach(el => {
+                        el.disabled = !canEditItems;
+                    });
+                });
+
+                rentalNoteInput.disabled = !(isReserved || isCheckedOut);
+            }
+
+            function updateSummary() {
+                let totalItems = 0;
+                let subtotal = 0;
+
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    if (row.classList.contains('no-items-row')) return;
+
+                    const qtyInput = row.querySelector('.item-qty');
+                    const subSpan = row.querySelector('.item-subtotal');
+
+                    const qty = parseInt(qtyInput.value || '0', 10);
+                    const rawText = subSpan.textContent.replace(/[^0-9.\-]/g, '');
+                    const numeric = parseFloat(rawText || '0');
+
+                    totalItems += isNaN(qty) ? 0 : qty;
+                    subtotal += isNaN(numeric) ? 0 : numeric;
+                });
+
+                const tax = subtotal * 0.13;
+                const total = subtotal + tax;
+
+                // If initialTotalValue is not set yet, use 0 for balance calculation.
+                // The real initial total will be locked in separately after initial load.
+                const effectiveInitial = initialTotalValue ?? 0;
+                const balance = total - effectiveInitial;
+
+                totalItemsSpan.textContent = totalItems.toString();
+                subtotalSpan.textContent = money(subtotal);
+                taxSpan.textContent = money(tax);
+                totalSpan.textContent = money(total);
+                initialTotalSpan.textContent = money(effectiveInitial);
+                balanceSpan.textContent = money(balance);
+            }
+            
+            function lockInitialTotalFromCurrentTotal() {
+            if (initialTotalValue !== null) return; // already locked
+
+            const totalText = totalSpan.textContent || '$0.00';
+            const numericTotal = parseFloat(totalText.replace(/[^0-9.\-]/g, '') || '0');
+
+            initialTotalValue = numericTotal;
+            initialTotalSpan.textContent = money(initialTotalValue);
+
+            // Recalculate balance now that initial total is known
+            const subtotalText = subtotalSpan.textContent || '$0.00';
+            const subtotalNumeric = parseFloat(subtotalText.replace(/[^0-9.\-]/g, '') || '0');
+            const taxNumeric = subtotalNumeric * 0.13;
+            const totalNumeric = subtotalNumeric + taxNumeric;
+            const balance = totalNumeric - initialTotalValue;
+
+            balanceSpan.textContent = money(balance);
+        }
+
+
+
+            function reindexRows() {
+                let index = 0;
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    if (row.classList.contains('no-items-row')) return;
+                    row.dataset.index = index;
+
+                    row.querySelector('.item-category').name = `Items[${index}].Category`;
+                    row.querySelector('.item-type').name = `Items[${index}].Type`;
+                    row.querySelector('.item-qty').name = `Items[${index}].Quantity`;
+
+                    index++;
+                });
+                nextIndex = index;
+            }
+
+            function wireRow(row) {
+                const categorySelect = row.querySelector('.item-category');
+                const typeSelect = row.querySelector('.item-type');
+                const qtyInput = row.querySelector('.item-qty');
+                const rateSpan = row.querySelector('.item-rate');
+                const subtotalSpan = row.querySelector('.item-subtotal');
+                const deleteBtn = row.querySelector('.item-delete');
+
+                const categories = [...new Set(equipmentCatalog.map(x => x.category))];
+                categorySelect.innerHTML =
+                    '<option value="">Select...</option>' +
+                    categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+                categorySelect.addEventListener('change', () => {
+                    const category = categorySelect.value;
+
+                    const types = equipmentCatalog.filter(x => x.category === category);
+                    typeSelect.disabled = !category;
+                    typeSelect.innerHTML =
+                        '<option value="">Select...</option>' +
+                        types.map(t => `<option value="${t.type}">${t.type}</option>`).join('');
+
+                    qtyInput.value = '';
+                    qtyInput.disabled = true;
+                    rateSpan.textContent = money(0);
+                    subtotalSpan.textContent = money(0);
+                    updateSummary();
+                });
+
+                typeSelect.addEventListener('change', () => {
+                    const category = categorySelect.value;
+                    const type = typeSelect.value;
+                    const info = getTypeInfo(category, type);
+
+                    if (!info) {
+                        qtyInput.value = '';
+                        qtyInput.disabled = true;
+                        rateSpan.textContent = money(0);
+                        subtotalSpan.textContent = money(0);
+                        updateSummary();
+                        return;
+                    }
+
+                    qtyInput.disabled = false;
+                    if (!qtyInput.value || parseInt(qtyInput.value, 10) <= 0) {
+                        qtyInput.value = '1';
+                    }
+
+                    rateSpan.textContent = money(info.dailyRate);
+
+                    const qty = parseInt(qtyInput.value || '0', 10);
+                    const days = rentalDays();
+                    const lineSubtotal = (qty > 0 && days > 0)
+                        ? info.dailyRate * qty * days
+                        : 0;
+                    subtotalSpan.textContent = money(lineSubtotal);
+                    updateSummary();
+                });
+
+                qtyInput.addEventListener('input', () => {
+                    const category = categorySelect.value;
+                    const type = typeSelect.value;
+                    const info = getTypeInfo(category, type);
+
+                    const qty = parseInt(qtyInput.value || '0', 10);
+                    const days = rentalDays();
+
+                    const lineSubtotal = (info && qty > 0 && days > 0)
+                        ? info.dailyRate * qty * days
+                        : 0;
+                    subtotalSpan.textContent = money(lineSubtotal);
+                    updateSummary();
+                });
+
+                deleteBtn.addEventListener('click', () => {
+                    row.remove();
+                    if (!itemsBody.querySelector('tr:not(.no-items-row)')) {
+                        showNoItemsMessage();
+                    }
+                    reindexRows();
+                    updateSummary();
+                    applyStatusRules();
+                });
+            }
+
+            function addEquipmentRow() {
+                if (!startDateInput.value || !endDateInput.value) {
+                    alert('Select Start Date and End Date first.');
+                    return null;
+                }
+
+                if (!equipmentCatalog.length) {
+                    alert('Equipment catalog is still loading. Try again.');
+                    return null;
+                }
+
+                removeNoItemsMessage();
+
+                const row = document.createElement('tr');
+                const index = nextIndex++;
+
+                row.dataset.index = index;
+                row.innerHTML = `
+                    <td>
+                        <select class="form-select form-select-sm item-category" name="Items[${index}].Category">
+                            <option value="">Select...</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm item-type" name="Items[${index}].Type" disabled>
+                            <option value="">Select...</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" min="1" class="form-control form-control-sm item-qty" name="Items[${index}].Quantity" disabled />
+                    </td>
+                    <td class="text-end">
+                        <span class="item-rate">$0.00</span>
+                    </td>
+                    <td class="text-end">
+                        <span class="item-subtotal">$0.00</span>
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm item-delete" title="Remove item">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                `;
+
+                itemsBody.appendChild(row);
+                wireRow(row);
+                applyStatusRules();
+                return row;
+            }
+
+            function populateInitialItems() {
+                if (!existingItems || !existingItems.length) {
+                    showNoItemsMessage();
+                    updateSummary();
+                    applyStatusRules();
+                    return;
+                }
+
+                existingItems.forEach(item => {
+                    const row = addEquipmentRow();
+                    if (!row) return;
+
+                    const categorySelect = row.querySelector('.item-category');
+                    const typeSelect = row.querySelector('.item-type');
+                    const qtyInput = row.querySelector('.item-qty');
+
+                    categorySelect.value = item.Category;
+                    categorySelect.dispatchEvent(new Event('change'));
+
+                    typeSelect.value = item.Type;
+                    typeSelect.dispatchEvent(new Event('change'));
+
+                    qtyInput.value = item.Quantity;
+                    qtyInput.dispatchEvent(new Event('input'));
+                });
+
+                reindexRows();
+                updateSummary();
+                applyStatusRules();
+                lockInitialTotalFromCurrentTotal();
+            }
+
+            function showPaymentOverlay() {
+                paymentOverlay.classList.remove('d-none');
+            }
+
+            function hidePaymentOverlay() {
+                paymentOverlay.classList.add('d-none');
+                paymentStatusIcon.innerHTML =
+                    '<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>';
+                paymentStatusText.textContent = 'Processing...';
+            }
+
+            function processPaymentAndSubmit(balanceNumeric) {
+                showPaymentOverlay();
+
+                const stages = balanceNumeric < 0
+                    ? ['Processing', 'Contacting Bank', 'Processing Refund']
+                    : ['Processing', 'Contacting Bank', 'Validating Payment'];
+
+                let idx = 0;
+
+                function runStages() {
+                    if (idx < stages.length) {
+                        paymentStatusText.textContent = stages[idx];
+                        idx++;
+                        setTimeout(runStages, 800);
+                    } else {
+                        paymentStatusIcon.innerHTML =
+                            '<i class="bi bi-check-circle-fill text-success fs-2"></i>';
+                        paymentStatusText.textContent = balanceNumeric < 0 ? 'Refunded' : 'Approved';
+
+                        setTimeout(() => {
+                            // Let the normal POST happen
+                            submitting = true;
+                            form.submit();
+                        }, 800);
+                    }
+                }
+
+                runStages();
+            }
+
+            // ------------- Events -------------
+
+            // Load equipment catalog once
+            fetch('@Url.Action("EquipmentCatalog", "Rentals")')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    equipmentCatalog = data || [];
+                    populateInitialItems();
+                })
+                .catch(() => {
+                    console.warn('Equipment catalog failed to load.');
+                    populateInitialItems();
+                });
+
+            startDateInput.addEventListener('change', () => {
+                itemsBody.querySelectorAll('.item-qty').forEach(i => i.dispatchEvent(new Event('input')));
+            });
+
+            endDateInput.addEventListener('change', () => {
+                itemsBody.querySelectorAll('.item-qty').forEach(i => i.dispatchEvent(new Event('input')));
+            });
+
+            addEquipmentBtn.addEventListener('click', () => {
+                if (rentalStatus !== 'Reserved') {
+                    alert('Equipment can only be edited while the rental is Reserved.');
+                    return;
+                }
+                const row = addEquipmentRow();
+                if (row) {
+                    updateSummary();
+                }
+            });
+
+            clearEquipmentBtn.addEventListener('click', () => {
+                if (rentalStatus !== 'Reserved') {
+                    alert('Equipment can only be edited while the rental is Reserved.');
+                    return;
+                }
+
+                itemsBody.innerHTML = '';
+                showNoItemsMessage();
+                reindexRows();
+                updateSummary();
+                applyStatusRules();
+            });
+
+            form.addEventListener('submit', function (e) {
+                if (submitting) {
+                    return; // real submit already in progress
+                }
+
+                e.preventDefault();
+
+                const days = rentalDays();
+                if (days <= 0) {
+                    alert('End Date must be on or after Start Date.');
+                    return;
+                }
+
+                const rows = itemsBody.querySelectorAll('tr:not(.no-items-row)');
+                if (rentalStatus === 'Reserved' && !rows.length) {
+                    alert('Add at least one equipment item for a Reserved rental.');
+                    return;
+                }
+
+                // Get numeric balance from the summary
+                const balanceText = balanceSpan.textContent || '$0.00';
+                const balanceNumeric = parseFloat(balanceText.replace(/[^0-9.\-]/g, '') || '0');
+
+                processPaymentAndSubmit(balanceNumeric);
+            });
+
+            // Initial state
+            applyStatusRules();
+            updateSummary();
+            showNoItemsMessage();
+        })();
+    </script>
+}

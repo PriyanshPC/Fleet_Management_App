@@ -1,243 +1,360 @@
-﻿@model Fleet_Management_App.Models.RentalListItem
-@using System.Globalization
+﻿@model Fleet_Management_App.Models.RentalDetailsViewModel
+
 @{
     ViewData["Title"] = "Rental Details";
-
-    // Initialize mock rental items for display; replace with database/service data when available
-    var items = new List<(string Name, string Category, string Asset, int Qty, decimal RatePerDay, int Days)>
-    {
-        ("RED Komodo 6K", "Cameras", "CAM-REDK-0034", 1, 120.00m,  (@Model.Due - @Model.Out).Days),
-        ("V-Mount Battery", "Tools", "BAT-VMT-1122", 2, 10.00m,     (@Model.Due - @Model.Out).Days),
-        ("Prime Lens Set", "Cameras", "LNS-PRM-2210", 1, 55.00m,    (@Model.Due - @Model.Out).Days),
-    };
-
-    // Calculate totals and charges for the rental summary
-    decimal itemsTotal = items.Sum(i => i.Qty * i.RatePerDay * i.Days);
-    decimal discount = 50.00m;                  // Fixed discount for demonstration
-    decimal tax = Math.Round(itemsTotal * 0.13m, 2); // HST at 13%
-    decimal grandTotal = itemsTotal - discount + tax;
-
-    // Helper to format currency values
-    string Money(decimal n) => n.ToString("C", CultureInfo.CurrentCulture);
-
-    // Helper to assign CSS classes for status pills
-    string StatusPill(string s) => s switch
-    {
-        "On Rent" => "pill pill-blue",
-        "Due Soon" => "pill pill-amber",
-        "Overdue" => "pill pill-red",
-        "Returned" => "pill pill-gray",
-        "Cancelled" => "pill pill-darkred",
-        "Scheduled" => "pill pill-green",
-        _ => "pill"
-    };
-
-    // List of possible rental statuses
-    var statuses = new[] { "On Rent", "Due Soon", "Overdue", "Returned", "Cancelled", "Scheduled" };
 }
 
-<!-- Page header with title and navigation actions -->
+<style>
+    /* BACKDROP */
+    .modal-backdrop-custom {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+
+    /* MODAL CARD */
+    .modal-card-custom {
+        background: #1c1f26;
+        color: #fff;
+        width: 450px;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    /* MODAL HEADER */
+    .modal-header-custom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.15rem;
+        margin-bottom: 12px;
+    }
+
+    .modal-title-custom {
+        font-weight: 600;
+    }
+
+    .modal-close-btn {
+        background: transparent;
+        border: none;
+        color: #aaa;
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+
+    /* BODY */
+    .modal-body-custom {
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        color: #ddd;
+    }
+
+    /* FOOTER */
+    .modal-footer-custom {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+</style>
+
+
 <div class="page-head">
     <div>
         <h2 class="m-0">Rental Details</h2>
-        <div class="kicker">View rental information, items, payments, and status history.</div>
+        <div class="kicker">View rental information, items, and available actions.</div>
     </div>
     <div class="d-flex align-items-center gap-2">
         <a class="btn btn-secondary" asp-controller="Rentals" asp-action="List">
             <i class="bi bi-arrow-left"></i> Back to List
         </a>
-        <a class="btn btn-green d-inline-flex align-items-center gap-2" asp-controller="Rentals" asp-action="Payment" asp-route-id="@Model.Id">
-            <i class="bi bi-credit-card-2-front"></i> Payment
-        </a>
     </div>
 </div>
 
-<!-- Rental summary header displaying key information -->
-<div class="card-panel mb-3">
-    <div class="row g-3 align-items-center">
-        <div class="col-lg-4">
-            <!-- Rental ID display -->
-            <div class="d-flex flex-column">
-                <div class="text-muted" style="font-size:12px;">Rental ID</div>
-                <div class="fs-5 fw-semibold">#@Model.Id</div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <!-- Client and category information -->
-            <div class="d-flex flex-column">
-                <div class="text-muted" style="font-size:12px;">Client</div>
-                <div class="fw-semibold">@Model.Client</div>
-                <div class="text-muted" style="font-size:13px;">Category: @Model.Category</div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <!-- Status selection and action buttons -->
-            <div class="d-flex gap-2 justify-content-lg-end flex-wrap">
-                <div class="d-flex flex-column">
-                    <label class="small-label">Status</label>
-                    <select id="statusSelect" class="form-select">
-                        @foreach (var s in statuses)
-                        {
-                            <option selected="@(s == Model.Status)">@s</option>
-                        }
-                    </select>
-                </div>
-                <div class="d-flex flex-column">
-                    <label class="small-label">Actions</label>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-secondary" id="btnMarkReturned"><i class="bi bi-box-arrow-in-left"></i> Mark Returned</button>
-                        <button class="btn btn-danger" id="btnCancel"><i class="bi bi-x-octagon"></i> Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@{
+    var statusCss = Model.UiStatus switch
+    {
+        "Reserved" => "pill pill-green",
+        "Checked Out" => "pill pill-blue",
+        "Returned" => "pill pill-gray",
+        "Overdue" => "pill pill-red",
+        "Closed" => "pill pill-gray",
+        _ => "pill"
+    };
+}
 
 <div class="row g-3">
-    <!-- Main content area: left column -->
+    <!-- LEFT SIDE -->
     <div class="col-lg-8">
 
-        <!-- Rental items table -->
+        <!-- Rental Details Card -->
         <div class="card-panel mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-semibold">Items</div>
-                <a class="link-muted" href="#"><i class="bi bi-pencil-square"></i> Edit Items</a>
+            <div class="fw-semibold mb-3">Rental Details</div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label small-label">Rental ID</label>
+                    <div>@Model.RentalCode</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Customer Name</label>
+                    <div>@Model.CustomerName</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Customer Phone</label>
+                    <div>@Model.CustomerPhone</div>
+                </div>
             </div>
+
+            <div class="row mb-1">
+                <div class="col-md-4">
+                    <label class="form-label small-label">Status</label>
+                    <div><span class="@statusCss">@Model.UiStatus</span></div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Out Date</label>
+                    <div>@Model.StartDate.ToString("yyyy-MM-dd")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small-label">Due Date</label>
+                    <div>@Model.EndDate.ToString("yyyy-MM-dd")</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rented Equipment -->
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-3">Rented Equipments</div>
 
             <div class="table-responsive">
                 <table class="table-darkish">
                     <thead>
                         <tr>
-                            <th>Equipment</th>
                             <th>Category</th>
-                            <th>Serial / Asset ID</th>
-                            <th>Qty</th>
-                            <th class="text-end">Rate</th>
-                            <th class="text-end">Days</th>
-                            <th class="text-end">Subtotal</th>
+                            <th>Equipment</th>
+                            <th>QTY</th>
+                            <th>Rate/Day</th>
+                            <th>Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var it in items)
+                        @foreach (var line in Model.Lines)
                         {
-                            var sub = it.Qty * it.RatePerDay * it.Days;
                             <tr>
-                                <td>@it.Name</td>
-                                <td>@it.Category</td>
-                                <td>@it.Asset</td>
-                                <td>@it.Qty</td>
-                                <td class="text-end">@Money(it.RatePerDay)</td>
-                                <td class="text-end">@it.Days</td>
-                                <td class="text-end">@Money(sub)</td>
+                                <td>@line.Category</td>
+                                <td>@line.Type</td>
+                                <td>@line.Quantity</td>
+                                <td>@line.DailyRate.ToString("C")</td>
+                                <td>@line.Subtotal.ToString("C")</td>
                             </tr>
                         }
                     </tbody>
-                    <tfoot>
+                    <thead>
                         <tr>
-                            <td colspan="6" class="text-end text-muted">Items Total</td>
-                            <td class="text-end">@Money(itemsTotal)</td>
+                            <td colspan="3"></td>
+                            <th>Subtotal: </th>
+                            <th><strong>@Model.Subtotal.ToString("C")</strong></th>
                         </tr>
-                    </tfoot>
+                        <tr>
+                            <td colspan="3"></td>
+                            <th>HST (13%): </th>
+                            <th><strong>@Model.Tax.ToString("C")</strong></th>
+                        </tr>
+                        <tr>
+                            <td colspan="3"></td>
+                            <th>Total: </th>
+                            <th><strong>@Model.Total.ToString("C")</strong></th>
+                        </tr>
+                    </thead>
                 </table>
             </div>
         </div>
 
-        <!-- Rental notes section -->
-        <div class="card-panel">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-semibold">Notes</div>
-                <a class="link-muted" href="#"><i class="bi bi-pencil"></i> Edit</a>
-            </div>
-            <div class="text-muted" style="white-space:pre-wrap; font-size:13px;">
-                Customer requests flexible return window due to late shoot schedule.
-                Check lens calibration upon return.
-            </div>
+        <!-- Notes -->
+        <div class="card-panel mb-3">
+            <div class="fw-semibold mb-3">Rental Notes</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Note))
+            {
+                <p>@Model.Note</p>
+            }
+            else
+            {
+                <p class="text-muted">No notes recorded for this rental.</p>
+            }
         </div>
 
     </div>
 
-    <!-- Sidebar: right column -->
+    <!-- ACTIONS COLUMN -->
     <div class="col-lg-4">
+        @if (!string.Equals(Model.UiStatus, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="card-panel mb-3">
+                <div class="fw-semibold">Actions</div>
+                <div class="text-muted small mb-3">Available actions based on rental status</div>
 
-        <!-- Rental schedule details -->
-        <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Schedule</div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Date Out</span><span>@Model.Out.ToString("MMM dd, yyyy")</span></div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Due Date</span><span>@Model.Due.ToString("MMM dd, yyyy")</span></div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Created</span><span>@Model.Out.AddDays(-4).ToString("MMM dd, yyyy • HH:mm")</span></div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Last Updated</span><span>@DateTime.Now.ToString("MMM dd, yyyy • HH:mm")</span></div>
-        </div>
+                @using (Html.BeginForm("UpdateStatus", "Rentals", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.Hidden("id", Model.RentalId)
 
-        <!-- Charges summary for the rental -->
-        <div class="card-panel mb-3">
-            <div class="fw-semibold mb-2">Charges</div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Items Total</span><span>@Money(itemsTotal)</span></div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Discount</span><span>-@Money(discount)</span></div>
-            <div class="d-flex justify-content-between"><span class="text-muted">Tax</span><span>@Money(tax)</span></div>
-            <hr class="dropdown-divider" />
-            <div class="d-flex justify-content-between fw-semibold"><span>Total</span><span>@Money(grandTotal)</span></div>
-            <a class="btn btn-green w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-2"
-               asp-controller="Rentals" asp-action="Payment" asp-route-id="@Model.Id">
-                <i class="bi bi-credit-card"></i> Take Payment
-            </a>
-        </div>
+                    <div class="row row-cols-2 g-2">
 
-        <!-- Activity timeline showing rental history -->
-        <div class="card-panel">
-            <div class="fw-semibold mb-2">Activity</div>
-            <div class="timeline">
-                <div class="tl-row">
-                    <div class="tl-dot"></div>
-                    <div>
-                        <div class="fw-semibold">
-                            Status set to <span class="@StatusPill(Model.Status)">@Model.Status</span>
-                        </div>
-                        <div class="text-muted" style="font-size:12px;">@Model.Out.ToString("MMM dd, yyyy") • 10:05 by Admin</div>
+                        <!-- RESERVED -->
+                        @if (Model.UiStatus == "Reserved")
+                        {
+                            <button type="button"
+                                    class="btn btn-primary w-100"
+                                    onclick="window.location.href='@Url.Action("Edit", "Rentals", new { id = Model.RentalId })'">
+                                Edit Rental
+                            </button>
+
+
+                            <div class="col">
+                                <button type="button"
+                                        class="btn btn-success w-100"
+                                        onclick="openConfirmModal('btnCheckedOut', 'Mark this rental as Checked Out?')">
+                                    Checked Out
+                                </button>
+                                <button id="btnCheckedOut"
+                                        type="submit"
+                                        name="actionType"
+                                        value="CheckedOut"
+                                        class="d-none">
+                                </button>
+                            </div>
+
+                            <div class="col">
+                                <button type="button"
+                                        class="btn btn-danger w-100"
+                                        onclick="openConfirmModal('btnCancel', 'Cancel and remove this rental?')">
+                                    Cancel
+                                </button>
+                                <button id="btnCancel"
+                                        type="submit"
+                                        name="actionType"
+                                        value="Cancel"
+                                        class="d-none">
+                                </button>
+                            </div>
+                        }
+
+                       <!-- CHECKED OUT -->
+                        @if (Model.UiStatus == "Checked Out")
+                        {
+                            <button type="button"
+                                    class="btn btn-primary w-100"
+                                    onclick="window.location.href='@Url.Action("Edit", "Rentals", new { id = Model.RentalId })'">
+                                Edit Rental
+                            </button>
+
+
+                            <div class="col">
+                                <button type="button"
+                                        class="btn btn-secondary w-100"
+                                        onclick="openConfirmModal('btnReturned', 'Mark this rental as Returned and move all items to maintenance?')">
+                                    Returned
+                                </button>
+                                <button id="btnReturned"
+                                        type="submit"
+                                        name="actionType"
+                                        value="Returned"
+                                        class="d-none">
+                                </button>
+                            </div>
+                        }
+
+                        <!-- RETURNED -->
+                        @if (Model.UiStatus == "Returned")
+                        {
+                            <div class="col">
+                                <button class="btn btn-primary w-100" disabled>Review</button>
+                            </div>
+                        }
+
+                        <!-- OVERDUE SCENARIO 1 -->
+                        @if (Model.UiStatus == "Overdue" && Model.IsOverdueScenario1)
+                        {
+                            <div class="col">
+                                <button class="btn btn-danger w-100" disabled>Charge</button>
+                            </div>
+                        }
+
+                        <!-- OVERDUE SCENARIO 2 -->
+                        @if (Model.UiStatus == "Overdue" && Model.IsOverdueScenario2)
+                        {
+                            <div class="col">
+                                <button class="btn btn-danger w-100" disabled>Charge</button>
+                            </div>
+
+                            <div class="col">
+                                <button type="button"
+                                        class="btn btn-secondary w-100"
+                                        onclick="openConfirmModal('btnOverdueReturned', 'Mark this overdue rental as Returned and update equipment?')">
+                                    Returned
+                                </button>
+                                <button id="btnOverdueReturned"
+                                        type="submit"
+                                        value="Returned"
+                                        name="actionType"
+                                        class="d-none">
+                                </button>
+                            </div>
+                        }
+
                     </div>
-                </div>
-                <div class="tl-row">
-                    <div class="tl-dot"></div>
-                    <div>
-                        <div class="fw-semibold">Items updated</div>
-                        <div class="text-muted" style="font-size:12px;">@Model.Out.AddDays(-1).ToString("MMM dd, yyyy") • 16:12 by Admin</div>
-                    </div>
-                </div>
-                <div class="tl-row">
-                    <div class="tl-dot"></div>
-                    <div>
-                        <div class="fw-semibold">Rental created</div>
-                        <div class="text-muted" style="font-size:12px;">@Model.Out.AddDays(-4).ToString("MMM dd, yyyy") • 09:14 by Admin</div>
-                    </div>
-                </div>
+                }
             </div>
-        </div>
-
+        }
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        // Handles status change actions and updates the activity timeline in the UI
-        const statusSelect = document.getElementById('statusSelect');
-        const activity = document.querySelector('.timeline');
+<!-- CONFIRMATION MODAL -->
+<div id="actionConfirmModal" class="modal-backdrop-custom" style="display:none;">
+    <div class="modal-card-custom">
+        <div class="modal-header-custom">
+            <div class="modal-title-custom">Confirm Action</div>
+            <button class="modal-close-btn" onclick="closeConfirmModal()">✕</button>
+        </div>
 
-        document.getElementById('btnMarkReturned')?.addEventListener('click', () => {
-          statusSelect.value = "Returned";
-          prependActivity('Status set to <span class="pill pill-gray">Returned</span>');
-        });
+        <div class="modal-body-custom">
+            <p id="actionMessage" class="mb-3">Are you sure?</p>
+        </div>
 
-        document.getElementById('btnCancel')?.addEventListener('click', () => {
-          statusSelect.value = "Cancelled";
-          prependActivity('Status set to <span class="pill pill-darkred">Cancelled</span>');
-        });
+        <div class="modal-footer-custom">
+            <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+            <button class="btn btn-primary" id="actionConfirmBtn">Confirm</button>
+        </div>
+    </div>
+</div>
 
-        // Prepends a new activity entry to the timeline
-        function prependActivity(html){
-          const row = document.createElement('div');
-          row.className = 'tl-row';
-          row.innerHTML = `<div class="tl-dot"></div><div><div class="fw-semibold">${html}</div><div class="text-muted" style="font-size:12px;">Just now • by Admin</div></div>`;
-          activity.prepend(row);
+
+<script>
+    let pendingButtonId = null;
+
+    function openConfirmModal(buttonId, message) {
+        pendingButtonId = buttonId;
+        document.getElementById('actionMessage').innerText = message;
+        document.getElementById('actionConfirmModal').style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('actionConfirmModal').style.display = 'none';
+        pendingButtonId = null;
+    }
+
+    document.getElementById('actionConfirmBtn').onclick = function () {
+        if (pendingButtonId) {
+            document.getElementById(pendingButtonId).click();
         }
-    </script>
-}
+        closeConfirmModal();
+    };
+</script>

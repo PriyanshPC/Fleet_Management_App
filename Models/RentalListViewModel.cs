@@ -1,48 +1,31 @@
-﻿namespace Fleet_Management_App.Models
+﻿using System;
+
+namespace Fleet_Management_App.Models
 {
     /// <summary>
-    /// Represents a single rental transaction in the fleet management system.
+    /// Lightweight projection of Rental used on the list page.
     /// </summary>
-    public class RentalListItem
+    public class RentalListViewModel
     {
-        /// <summary>
-        /// Unique identifier for the rental (e.g., "R-1035").
-        /// </summary>
-        public string Id { get; set; } = "";
+        /// <summary>Database primary key for the rental.</summary>
+        public Guid RentalId { get; set; }
+
+        /// <summary>Business-facing rental code (e.g., RT-0001).</summary>
+        public string RentalCode { get; set; } = string.Empty;
+
+        /// <summary>Customer / client name to display.</summary>
+        public string CustomerName { get; set; } = string.Empty;
+
+        /// <summary>Rental start date.</summary>
+        public DateOnly StartDate { get; set; }
+
+        /// <summary>Rental end / due date.</summary>
+        public DateOnly EndDate { get; set; }
 
         /// <summary>
-        /// Name of the client who made the rental.
+        /// UI-facing status label:
+        /// Reserved / Checked Out / Returned / Overdue / Closed.
         /// </summary>
-        public string Client { get; set; } = "";
-
-        /// <summary>
-        /// Category of the rented items (e.g., Cameras, Drones, Vehicles).
-        /// </summary>
-        public string Category { get; set; } = "";
-
-        /// <summary>
-        /// Description or list of items included in the rental.
-        /// </summary>
-        public string Items { get; set; } = "";
-
-        /// <summary>
-        /// Date when the rental period starts.
-        /// </summary>
-        public DateTime Out { get; set; }
-
-        /// <summary>
-        /// Date when the rental is due to be returned.
-        /// </summary>
-        public DateTime Due { get; set; }
-
-        /// <summary>
-        /// Current status of the rental (e.g., On Rent, Due Soon, Overdue, Returned, Cancelled, Scheduled).
-        /// </summary>
-        public string Status { get; set; } = "";
-
-        /// <summary>
-        /// Total cost of the rental.
-        /// </summary>
-        public decimal Total { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

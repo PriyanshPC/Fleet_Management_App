@@ -14,6 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Models\RentalListViewModel.cs~RF119c872a.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Employee.cs" />
     <Compile Include="Entities\Equipment.cs" />
